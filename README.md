@@ -1,4 +1,4 @@
-# Rosetta
+# rosetta
 
 Discord bot for managing channels in playthrough servers.
 
@@ -16,7 +16,11 @@ Run `export $(cat .env | xargs) && poetry run start`
 
 ### Docker
 
-
+1. Have `Docker` and `docker-compose` installed.
+2. Run `docker-compose build`.
+3. Configure the bot with `poetry run config`.
+4. Run `docker-compose up`.
 
 ## Running tests
+
 Run `poetry run test`
