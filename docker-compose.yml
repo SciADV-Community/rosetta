@@ -1,0 +1,11 @@
+version: "3"
+services:
+    rosetta:
+        container_name: rosetta
+        hostname: rosetta
+        restart: unless-stopped
+        image: rosetta
+        build:
+            context: .
+        env_file:
+            - .env

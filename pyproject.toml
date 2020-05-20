@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "rosetta"
+version = "0.1.0"
+description = "Discord bot for managing channels in playthrough servers."
+authors = ["Rain <Rain#8710>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.6"
+discord = "^1.0.1"
+click = "^7.0"
+inquirer = "^2.6.3"
+
+[tool.poetry.dev-dependencies]
+pylint = "^2.4.4"
+pytest = "^5.3.2"
+pytest-cov = "^2.8.1"
+black = "^19.10b0"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
