@@ -1,10 +1,12 @@
 #!env/bin/python3
 """Main module to run the bot."""
+import logging
 from discord.ext import commands
 from rosetta import config, utils
 
 # Logging
-logger = utils.get_logger()
+logging.config.fileConfig('logging.conf', defaults={'logfilename': 'rosetta-log.log'})
+logger = logging.getLogger(__name__)
 
 # State
 loaded_modules = []
@@ -14,14 +16,14 @@ client = commands.Bot(command_prefix=config.PREFIX, description=config.DESCRIPTI
 @client.event
 async def on_ready():
     """Handle what happens when the bot is ready."""
-    print(f"Logged in as {client.user.name} - {client.user.id}")
+    logger.info(f"Logged in as {client.user.name} - {client.user.id}")
 
-    print(f"------ Guilds ({len(client.guilds)}) ------")
+    logger.info(f"------ Guilds ({len(client.guilds)}) ------")
     for guild in client.guilds:
-        print(guild.name)
+        logger.info(guild.name)
 
-    print(f"------ Loading Modules ({len(config.STARTUP)}) ------")
-    for module in config.STARTUP:
+    logger.info(f"------ Loading Modules ({len(config.INSTALLED_MODULES)}) ------")
+    for module in config.INSTALLED_MODULES:
         if await utils.load_module(client, module):
             loaded_modules.append(module)
 
