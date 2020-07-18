@@ -3,47 +3,45 @@ from datetime import datetime
 
 from discord import Embed, Colour
 
-from playthrough.models import Series
+from playthrough.models import Game
 
 if TYPE_CHECKING:
     from typing import List
 
 
-def series_list_to_embed(series_list: 'List[Series]') -> Embed:
-    """Utility function to convert a list of Series into an Embed.
+def games_list_to_embed(games_list: 'List[Game]') -> Embed:
+    """Utility function to convert a list of Games into an Embed.
 
-    :return: An Embed displaying a List of Series."""
+    :return: An Embed displaying a List of Games."""
     ret = Embed(
         title='VN Database',
         type='rich',
         timestamp=datetime.now(),
         colour=Colour.gold()
     )
-    series_str = ''
-    for i, series in enumerate(series_list):
-        series_str += f'{i + 1}) {series}\n'
-    ret.add_field(name='Series', value=series_str)
+    games_str = ''
+    for i, game in enumerate(games_list):
+        games_str += f'{i + 1}) {game}\n'
+    ret.add_field(name='Games', value=games_str)
     return ret
 
 
-def series_to_embed(series: Series) -> Embed:
+def game_to_embed(game: Game) -> Embed:
     """Utility function to convert a Series object into an Embed.
 
     :return: An Embed displaying a Series."""
     ret = Embed(
-        title=series.name,
+        title=game.name,
         type='rich',
         timestamp=datetime.now(),
         colour=Colour.gold()
     )
-    games = series.games.all()
-    if len(games) > 0:
-        ret.add_field(
-            name='Games',
-            value=', '.join([str(game) for game in games]),
-            inline=True
-        )
-    aliases = series.aliases.all()
+    ret.add_field(
+        name='Series',
+        value=str(game.series),
+        inline=True
+    )
+    aliases = game.aliases.all()
     if len(aliases) > 0:
         ret.add_field(
             name='Aliases',
