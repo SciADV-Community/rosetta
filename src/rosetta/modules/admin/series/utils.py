@@ -36,4 +36,8 @@ def series_to_embed(series: Series) -> Embed:
         timestamp=datetime.now(),
         colour=Colour.gold()
     )
+    ret.add_field(
+        name='Aliases',
+        value=', '.join([str(alias) for alias in series.aliases.all()])
+    )
     return ret

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from asgiref.sync import sync_to_async
 import click
 
-from playthrough.models import Series
+from playthrough.models import Series, Alias
 from .utils import series_list_to_embed, series_to_embed
 
 if TYPE_CHECKING:
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 @sync_to_async
 def _get_series(series_name: str) -> 'Union[Series,None]':
     try:
-        return Series.objects.get(name=series_name)
+        return Series.get_by_name_or_alias(name=series_name)
     except Series.DoesNotExist:
         return None
 
@@ -28,6 +28,11 @@ def _get_all_series():
 @sync_to_async
 def _create_series(name: str) -> 'Tuple[Series,bool]':
     return Series.objects.get_or_create(name=name)
+
+
+@sync_to_async
+def _delete_alias(alias: str):
+    Alias.objects.filter(alias=alias).delete()
 
 
 @click.command()
@@ -79,8 +84,21 @@ async def remove(context: 'Context', series: str):
 @click.command()
 @click.argument('series', type=str)
 @click.option('--name', '-n', type=str, help='new name of the series')
+@click.option(
+    '--add-aliases', '-na', type=str, help='comma separated list of aliases to add'
+)
+@click.option(
+    '--remove-aliases', '-da', type=str,
+    help='comma separated list of aliases to remove'
+)
 @click.pass_context
-async def update(context: 'Context', series: str, name: str = None):
+async def update(
+    context: 'Context',
+    series: str,
+    name: str = None,
+    add_aliases: str = None,
+    remove_aliases: str = None
+):
     """Command to update a series"""
     discord_context = context.obj["discord_context"]
     series_obj = await _get_series(series)
@@ -89,9 +107,22 @@ async def update(context: 'Context', series: str, name: str = None):
             f'Sorry, it seems that series `{series}` wasn\'t found in our database.'
         )
     else:
-        await discord_context.send(name)
-        series_obj.name = name
-        await sync_to_async(series_obj.save)()
+        if name is not None:
+            await discord_context.send(f'Setting name to: `{name}`...')
+            series_obj.name = name
+            await sync_to_async(series_obj.save)()
+        if add_aliases is not None:
+            aliases = set([alias.lower() for alias in add_aliases.split(',')])
+            for alias in [a for a in aliases if len(a) > 2]:
+                await discord_context.send(f'Adding alias: `{alias}`...')
+                await sync_to_async(Alias.objects.create)(
+                    content_object=series_obj, alias=alias
+                )
+        if remove_aliases is not None:
+            aliases = set([alias.lower() for alias in remove_aliases.split(',')])
+            for alias in [a for a in aliases if len(a) > 2]:
+                await discord_context.send(f'Removing alias: `{alias}`...')
+                await _delete_alias(alias)
         await discord_context.send('Successfully saved changes!')
 
 
@@ -103,6 +134,10 @@ async def _list(context: 'Context', series: str = None):
     discord_context = context.obj["discord_context"]
     if series is None:
         all_series = await _get_all_series()
+        if len(all_series) == 0:
+            await discord_context.send('No series currently registered!')
+            return
+
         await discord_context.send(embed=series_list_to_embed(all_series))
     else:
         series_obj = await _get_series(series)
@@ -111,7 +146,8 @@ async def _list(context: 'Context', series: str = None):
                 f'Sorry, it seems that series `{series}` wasn\'t found in our database.'
             )
         else:
-            await discord_context.send(embed=series_to_embed(series_obj))
+            embed = await sync_to_async(series_to_embed)(series_obj)
+            await discord_context.send(embed=embed)
 
 
 __all__ = [

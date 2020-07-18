@@ -21,7 +21,7 @@ class Admin(Cog):
                 'Unauthorized user %s attempted to invoke admin command.',
                 context.author.name
             )
-            await context.send('You are not authorizeid to use the admin command.')
+            await context.send('You are not authorized to use the admin command.')
             return
 
         args = shlex.split(args)
