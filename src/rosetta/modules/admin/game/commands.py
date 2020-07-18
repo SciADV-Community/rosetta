@@ -37,23 +37,21 @@ def _delete_alias(alias: str):
 
 @click.command()
 @click.option('--name', '-n', type=str, help='name of the series', required=True)
-@click.option(
-    '--series', '-s', type=str, help='name or alias of the series', required=True
-)
+@click.option('--series', '-s', type=str, help='name or alias of the series')
 @click.pass_context
 async def add(context: 'Context', name: str, series: str):
     """Command to add a game"""
     discord_context = context.obj["discord_context"]
     try:
         series = await sync_to_async(Series.get_by_name_or_alias)(series)
-        async with discord_context.typing():
-            game, created = await _create_game(name, series)
-            if created:
-                await discord_context.send(f'Game `{game}` was successfully created!')
-            else:
-                await discord_context.send(f'Game `{game}` seems to already exist.')
     except (Series.DoesNotExist):
-        await discord_context.send(f'Series `{series}` was not found in our database.')
+        series = None
+    async with discord_context.typing():
+        game, created = await _create_game(name, series)
+        if created:
+            await discord_context.send(f'Game `{game}` was successfully created!')
+        else:
+            await discord_context.send(f'Game `{game}` seems to already exist.')
 
 
 @click.command()
@@ -71,7 +69,7 @@ async def remove(context: 'Context', game: str):
         return
 
     await discord_context.send(
-        f'Are you sure you want to delete the game `{game}`? (Y/N)'
+        f'Are you sure you want to delete the game `{game_obj}`? (Y/N)'
     )
 
     def check(m: 'Message') -> bool:
@@ -83,7 +81,7 @@ async def remove(context: 'Context', game: str):
     else:
         if message.content.lower() in ['y', 'yes']:
             await sync_to_async(game_obj.delete)()
-            await discord_context.send(f'Poof! Game `{game}` is gone!')
+            await discord_context.send(f'Poof! Game `{game_obj}` is gone!')
         else:
             await discord_context.send('Alright then!')
 
@@ -91,6 +89,7 @@ async def remove(context: 'Context', game: str):
 @click.command()
 @click.argument('game', type=str)
 @click.option('--name', '-n', type=str, help='new name of the game')
+@click.option('--series', '-s', type=str, help='name or alias of the series')
 @click.option(
     '--add-aliases', '-na', type=str, help='comma separated list of aliases to add'
 )
@@ -103,6 +102,7 @@ async def update(
     context: 'Context',
     game: str,
     name: str = None,
+    series: str = None,
     add_aliases: str = None,
     remove_aliases: str = None
 ):
@@ -118,6 +118,17 @@ async def update(
             await discord_context.send(f'Setting name to: `{name}`...')
             game_obj.name = name
             await sync_to_async(game_obj.save)()
+        if series is not None:
+            try:
+                await discord_context.send(f'Setting series to: `{series}`...')
+                series_obj = await sync_to_async(Series.get_by_name_or_alias)(series)
+                game_obj.series = series_obj
+                await sync_to_async(game_obj.save)()
+            except (Series.DoesNotExist):
+                await discord_context.send('Failed to set series.')
+                await discord_context.send(
+                    f'Series `{series}` was not found in our database.'
+                )
         if add_aliases is not None:
             aliases = set([alias.lower() for alias in add_aliases.split(',')])
             for alias in [a for a in aliases if len(a) > 2]:

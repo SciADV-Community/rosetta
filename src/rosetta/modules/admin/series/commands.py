@@ -64,7 +64,7 @@ async def remove(context: 'Context', series: str):
         return
 
     await discord_context.send(
-        f'Are you sure you want to delete series `{series}`? (Y/N)'
+        f'Are you sure you want to delete series `{series_obj}`? (Y/N)'
     )
 
     def check(m: 'Message') -> bool:
@@ -76,7 +76,7 @@ async def remove(context: 'Context', series: str):
     else:
         if message.content.lower() in ['y', 'yes']:
             await sync_to_async(series_obj.delete)()
-            await discord_context.send(f'Poof! Series `{series}` is gone!')
+            await discord_context.send(f'Poof! Series `{series_obj}` is gone!')
         else:
             await discord_context.send('Alright then!')
 
