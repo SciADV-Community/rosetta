@@ -3,13 +3,13 @@ from typing import TYPE_CHECKING
 from asgiref.sync import sync_to_async
 import click
 
-from playthrough.models import Game, Alias, Series
+from playthrough.models import Game, Alias, Series, RoleTemplate
+from rosetta.utils import ask
 from .utils import games_list_to_embed, game_to_embed
 
 if TYPE_CHECKING:
     from typing import Union, Tuple
     from click import Context
-    from discord import Message
 
 
 @sync_to_async
@@ -56,40 +56,42 @@ async def add(context: 'Context', name: str, series: str):
 
 @click.command()
 @click.argument('game', type=str)
+@click.option('--yes', '-y', is_flag=True, help='confirm the deletion')
 @click.pass_context
-async def remove(context: 'Context', game: str):
+async def remove(context: 'Context', game: str, yes: bool = False):
     """Command to remove a game"""
     discord_context = context.obj["discord_context"]
-    channel = discord_context.channel
     game_obj = await _get_game(game)
     if game_obj is None:
         await discord_context.send(
             f'Sorry, it seems that game `{game}` wasn\'t found in our database.'
         )
         return
-
-    await discord_context.send(
-        f'Are you sure you want to delete the game `{game_obj}`? (Y/N)'
-    )
-
-    def check(m: 'Message') -> bool:
-        return m.channel == channel and m.content.lower() in ['y', 'n', 'yes', 'no']
-
-    message = await discord_context.bot.wait_for('message', check=check, timeout=15)
-    if message is None:
-        await discord_context.send('You forgot to reply! Will take that as a no.')
-    else:
-        if message.content.lower() in ['y', 'yes']:
-            await sync_to_async(game_obj.delete)()
-            await discord_context.send(f'Poof! Game `{game_obj}` is gone!')
+    if not yes:
+        message = await ask(
+            discord_context,
+            f'Are you sure you want to delete the game `{game_obj}`? (Y/N)',
+            lambda m: m.content.lower() in ['y', 'n', 'yes', 'no']
+        )
+        if message is None:
+            await discord_context.send('You forgot to reply! Will take that as a no.')
         else:
-            await discord_context.send('Alright then!')
+            if message.content.lower() in ['y', 'yes']:
+                yes = True
+            else:
+                await discord_context.send('Alright then!')
+    if yes:
+        await sync_to_async(game_obj.delete)()
+        await discord_context.send(f'Poof! Game `{game_obj}` is gone!')
 
 
 @click.command()
 @click.argument('game', type=str)
 @click.option('--name', '-n', type=str, help='new name of the game')
 @click.option('--series', '-s', type=str, help='name or alias of the series')
+@click.option(
+    '--channel-suffix', '-cf', type=str, help='the suffix for the game\'s channels'
+)
 @click.option(
     '--add-aliases', '-na', type=str, help='comma separated list of aliases to add'
 )
@@ -103,6 +105,7 @@ async def update(
     game: str,
     name: str = None,
     series: str = None,
+    channel_suffix: str = None,
     add_aliases: str = None,
     remove_aliases: str = None
 ):
@@ -129,6 +132,12 @@ async def update(
                 await discord_context.send(
                     f'Series `{series}` was not found in our database.'
                 )
+        if channel_suffix is not None:
+            await discord_context.send(
+                f'Setting channel suffix to: `{channel_suffix}`...'
+            )
+            game_obj.channel_suffix = channel_suffix
+            await sync_to_async(game_obj.save)()
         if add_aliases is not None:
             aliases = set([alias.lower() for alias in add_aliases.split(',')])
             for alias in [a for a in aliases if len(a) > 2]:
@@ -142,6 +151,96 @@ async def update(
                 await discord_context.send(f'Removing alias: `{alias}`...')
                 await _delete_alias(alias)
         await discord_context.send('Successfully saved changes!')
+
+
+@click.command()
+@click.argument('game', type=str)
+@click.option('--name', '-n', type=str, help='the name of the role')
+@click.option('--colour', '-c', type=str, help='hex code for the colour of the role.')
+@click.pass_context
+async def set_role_template(
+    context: 'Context', game: str, name: str = None, colour: str = None
+):
+    """Command to set the game's completion role template"""
+    discord_context = context.obj["discord_context"]
+    game_obj = await _get_game(game)
+    if game_obj is None:
+        await discord_context.send(
+            f'Sorry, it seems that game `{game}` wasn\'t found in our database.'
+        )
+        return
+    if name is not None or colour is not None:
+        if game_obj.completion_role is not None:  # Update
+            if name is not None:
+                await discord_context.send(f'Setting name to {name}...')
+                game_obj.completion_role.name = name
+            if colour is not None:
+                game_obj.completion_role.colour = colour.replace('#', '')
+                if not game_obj.completion_role.is_valid():
+                    await discord_context.send(f'Invalid colour: {colour}. Is it hex?')
+                    return
+                await discord_context.send(f'Setting name to {colour}...')
+            await sync_to_async(game_obj.completion_role.save)()
+            await discord_context.send(
+                f'Saved changes to {game_obj}\'s Completion Role Template!'
+            )
+        else:  # Create
+            if name is None:
+                await discord_context.send('Role template name is required!')
+                return
+            template = RoleTemplate(name=name, colour=colour.replace('#', ''))
+            if not template.is_valid():
+                await discord_context.send(f'Invalid colour: {colour}. Is it hex?')
+                return
+            await sync_to_async(template.save)()
+            game_obj.completion_role = template
+            await sync_to_async(game_obj.save)()
+            await discord_context.send(f'Created role template `{template}`!')
+    else:
+        await discord_context.send(
+            'Please provide at least 1 option. Either `--name` or `--colour`!'
+        )
+
+
+@click.command()
+@click.argument('game', type=str)
+@click.option('--yes', '-y', is_flag=True, help='confirm the deletion')
+@click.pass_context
+async def remove_role_template(context: 'Context', game: str, yes: bool = False):
+    """Command to set the game's completion role template"""
+    discord_context = context.obj["discord_context"]
+    game_obj = await _get_game(game)
+    if game_obj is None:
+        await discord_context.send(
+            f'Sorry, it seems that game `{game}` wasn\'t found in our database.'
+        )
+        return
+    if game_obj.completion_role is not None:  # Update
+        if not yes:
+            message = await ask(
+                discord_context,
+                (f'Are you sure you want to delete the game\'s `{game_obj}`',
+                 'role template? (Y/N)'),
+                lambda m: m.content.lower() in ['y', 'n', 'yes', 'no']
+            )
+            if message is None:
+                await discord_context.send(
+                    'You forgot to reply! Will take that as a no.'
+                )
+            else:
+                if message.content.lower() in ['y', 'yes']:
+                    yes = True
+                else:
+                    await discord_context.send('Alright then!')
+        if yes:
+            await sync_to_async(game_obj.completion_role.delete)()
+            await discord_context.send(
+                f'Poof! The role template for game `{game_obj}` is gone!'
+            )
+    else:  # Create
+        await discord_context.send(
+            f'The game {game_obj} doesn\'t have a role template... Are you okay?'
+        )
 
 
 @click.command(name='list')
@@ -172,5 +271,7 @@ __all__ = [
     'add',
     'remove',
     'update',
+    'set_role_template',
+    'remove_role_template',
     '_list',
 ]

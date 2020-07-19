@@ -7,7 +7,10 @@ from asgiref.sync import sync_to_async
 from playthrough.models import User
 
 if TYPE_CHECKING:
+    from discord import Message
     from discord import User as DiscordUser
+    from discord.ext.commands import Context
+    from typing import Callable, Union
 
 
 logger = logging.getLogger(__name__)
@@ -82,3 +85,25 @@ async def unload_module(client, module, context=None):  # pragma: no cover
             f"{module} could not be unloaded due to an error. Please check the logs.",
         )
         return False
+
+
+async def ask(
+    context: 'Context',
+    prompt: str,
+    condition: 'Callable[[Message],bool]',
+    timeout: int = 15
+) -> 'Union[Message,None]':
+    """Utility to make dialogues easier.
+
+    :param context: The discord context.
+    :param prompt: The prompt to send.
+    :param condition: The condition to accept new messages.
+    :param timeout: (Optional) the timeout to wait for. Defaults to 15s.
+    :return: The first Message matched or None."""
+    def check(m: 'Message') -> bool:
+        cond1 = condition(m)
+        return cond1 and m.channel == context.channel
+
+    prompt_msg = await context.send(prompt)
+    await context.bot.wait_for('message', check=check, timeout=timeout)
+    await prompt_msg.delete()

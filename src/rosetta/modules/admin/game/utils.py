@@ -38,14 +38,22 @@ def game_to_embed(game: Game) -> Embed:
     )
     ret.add_field(
         name='Series',
-        value=str(game.series),
-        inline=True
+        value=str(game.series)
     )
     aliases = game.aliases.all()
     if len(aliases) > 0:
         ret.add_field(
             name='Aliases',
-            value=', '.join([str(alias) for alias in aliases]),
-            inline=True
+            value=', '.join([str(alias) for alias in aliases])
         )
+    ret.add_field(
+        name='Channel Suffix',
+        value=game.channel_suffix,
+        inline=False
+    )
+    ret.add_field(
+        name='Role Template',
+        value=str(game.completion_role),
+        inline=False
+    )
     return ret
