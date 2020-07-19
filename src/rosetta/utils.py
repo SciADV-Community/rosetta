@@ -1,29 +1,19 @@
 """Module with various utilities for the bot."""
 import logging
-from rosetta import config
+from typing import TYPE_CHECKING
+
+from asgiref.sync import sync_to_async
+
+from playthrough.models import User
+
+if TYPE_CHECKING:
+    from discord import Message
+    from discord import User as DiscordUser
+    from discord.ext.commands import Context
+    from typing import Callable, Union
 
 
-def generate_logger():
-    """Create the Logger."""
-    logger = logging.getLogger("rosetta")
-    logger.setLevel(logging.DEBUG)
-
-    handler = logging.FileHandler(filename="rosetta-log.log", encoding="utf-8", mode="a")
-    handler.setFormatter(
-        logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s")
-    )
-
-    logger.addHandler(handler)
-
-    return logger
-
-
-_logger = generate_logger()
-
-
-def get_logger():
-    """Give access to the Logger."""
-    return _logger
+logger = logging.getLogger(__name__)
 
 
 async def send_message(context, message):  # pragma: no cover
@@ -32,26 +22,32 @@ async def send_message(context, message):  # pragma: no cover
         await context.send(message)
 
 
+@sync_to_async
+def is_bot_admin(author: 'DiscordUser') -> bool:
+    """Checks whether or not the discord user is a bot admin.
+
+    :return: Whether or not the user is a bot admin."""
+    user_obj = User.objects.filter(id=author.id)
+    ret = False
+    if user_obj.exists():
+        ret = user_obj[0].bot_admin
+
+    return ret
+
+
 async def load_module(client, module, context=None):  # pragma: no cover
     """Load a certain module. Returns whether or not the loading succeeded."""
-    logger = get_logger()
-
-    if context and context.author.id not in config.ADMINS:
+    if context and not await is_bot_admin(context.author):
         logger.warning(
             "Unauthorized user %s attempted to load module %s",
             context.author.name,
             module,
         )
-        await send_message(context, f"You are not authorized to load modules.")
-        return False
-
-    if module not in config.MODULES:
-        logger.info("Attempted to load invalid module %s", module)
-        await send_message(context, f"{module} is not a valid module.")
+        await send_message(context, "You are not authorized to load modules.")
         return False
 
     try:
-        module = f"rosetta.modules.{module}"
+        module = f"rosetta.{module}"
         client.load_extension(module)
         logger.info("Module %s was successfully loaded.", module)
         await send_message(context, f"{module} was successfully loaded.")
@@ -67,19 +63,17 @@ async def load_module(client, module, context=None):  # pragma: no cover
 
 async def unload_module(client, module, context=None):  # pragma: no cover
     """Unload a certain module. Returns whether or not the unloading succeeded."""
-    logger = get_logger()
-
-    if context and context.author.id not in config.ADMINS:
+    if context and not await is_bot_admin(context.author):
         logger.warning(
             "Unauthorized user %s attempted to unload module %s",
             context.author.name,
             module,
         )
-        await send_message(context, f"You are not authorized to unload modules.")
+        await send_message(context, "You are not authorized to unload modules.")
         return False
 
     try:
-        module = f"rosetta.modules.{module}"
+        module = f"rosetta.{module}"
         client.unload_extension(module)
         logger.info("Module %s was successfully unloaded.", module)
         await send_message(context, f"{module} was successfully unloaded.")
@@ -91,3 +85,26 @@ async def unload_module(client, module, context=None):  # pragma: no cover
             f"{module} could not be unloaded due to an error. Please check the logs.",
         )
         return False
+
+
+async def ask(
+    context: 'Context',
+    prompt: str,
+    condition: 'Callable[[Message],bool]',
+    timeout: int = 15
+) -> 'Union[Message,None]':
+    """Utility to make dialogues easier.
+
+    :param context: The discord context.
+    :param prompt: The prompt to send.
+    :param condition: The condition to accept new messages.
+    :param timeout: (Optional) the timeout to wait for. Defaults to 15s.
+    :return: The first Message matched or None."""
+    def check(m: 'Message') -> bool:
+        cond1 = condition(m)
+        return cond1 and m.channel == context.channel
+
+    prompt_msg = await context.send(prompt)
+    message = await context.bot.wait_for('message', check=check, timeout=timeout)
+    await prompt_msg.delete()
+    return message

@@ -1,10 +1,14 @@
 #!env/bin/python3
 """Main module to run the bot."""
+import logging
+from asgiref.sync import sync_to_async
 from discord.ext import commands
+from playthrough.models import Guild
 from rosetta import config, utils
 
 # Logging
-logger = utils.get_logger()
+logging.config.fileConfig('logging.conf', defaults={'logfilename': 'rosetta-log.log'})
+logger = logging.getLogger(__name__)
 
 # State
 loaded_modules = []
@@ -14,14 +18,14 @@ client = commands.Bot(command_prefix=config.PREFIX, description=config.DESCRIPTI
 @client.event
 async def on_ready():
     """Handle what happens when the bot is ready."""
-    print(f"Logged in as {client.user.name} - {client.user.id}")
+    logger.info(f"Logged in as {client.user.name} - {client.user.id}")
 
-    print(f"------ Guilds ({len(client.guilds)}) ------")
+    logger.info(f"------ Guilds ({len(client.guilds)}) ------")
     for guild in client.guilds:
-        print(guild.name)
+        logger.info(guild.name)
 
-    print(f"------ Loading Modules ({len(config.STARTUP)}) ------")
-    for module in config.STARTUP:
+    logger.info(f"------ Loading Modules ({len(config.INSTALLED_MODULES)}) ------")
+    for module in config.INSTALLED_MODULES:
         if await utils.load_module(client, module):
             loaded_modules.append(module)
 
@@ -80,16 +84,7 @@ async def reload(context, module: str = None):
 async def on_message(message):
     """Handle new messages."""
     if message.author is not client:
-        if message.content.startswith("!!log"):
-            await message.channel.send("Are you fucking retarded")
-        elif message.content.startswith("!!!log"):
-            await message.channel.send(
-                "On how many layers of idiocy are you right now?"
-            )
-        elif message.content.startswith("!!!!log"):
-            await message.channel.send("You gotta stop drinking, dude")
-        else:
-            await client.process_commands(message)
+        await client.process_commands(message)
 
 
 @client.event
@@ -97,6 +92,23 @@ async def on_command_error(context, error):
     """Handle error-handling from commands."""
     command = context.message.content.split()[0][1:]
     logger.error("Error occured for command %s: %s", command, error)
+
+
+@client.event
+async def on_guild_join(guild):
+    """Handle setting up a new guild."""
+    logger.info(f'Joined new guild: {guild.name} ({guild.id})')
+    res = await sync_to_async(Guild.objects.get_or_create)(id=guild.id)
+    logger.info(f'Registered Guild in the database: {res[0]} (created={res[1]}')
+
+
+@client.event
+async def on_guild_remove(guild):
+    """Handle leaving a guild."""
+    logger.info(f'Left guild: {guild.name} ({guild.id})')
+    guild_obj = await sync_to_async(Guild.objects.get)(id=guild.id)
+    await sync_to_async(guild_obj.delete)()
+    logger.info(f'Deleted Guild {guild_obj} from the database.')
 
 
 # Running the client

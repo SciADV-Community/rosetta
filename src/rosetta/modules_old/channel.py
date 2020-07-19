@@ -1,10 +1,11 @@
+import logging
 import discord
 from discord.utils import get
 from discord.ext.commands import Cog, command
 from rosetta.discord import utils
 from rosetta.models import Guild, Game, Channel, Category, CompletionRole
 
-logger = utils.get_logger()
+logger = logging.getLogger(__name__)
 
 
 class ChannelManagement(Cog):
@@ -19,7 +20,6 @@ class ChannelManagement(Cog):
         Arguments:
             game -- The game to start a playthrough channel for.
         """
-        guild = context.guild
         guild_obj = Guild.get(id=context.guild.id)
         user = context.author
         game_obj = Game.get_by_alias(game)
@@ -41,7 +41,7 @@ class ChannelManagement(Cog):
         )
         if not category_obj:
             await context.send(
-                f"Sorry, all our categories are full right now. Please contact an admin."
+                "Sorry, all our categories are full right now. Please contact an admin."
             )
             return
 
@@ -138,7 +138,7 @@ class ChannelManagement(Cog):
 
         role = get(context.guild.roles, id=completion_role_obj.id)
         await context.author.add_roles(role)
-        await context.send(f"Role successfully added!")
+        await context.send("Role successfully added!")
         # TODO Meta role handling
 
 
