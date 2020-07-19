@@ -105,5 +105,6 @@ async def ask(
         return cond1 and m.channel == context.channel
 
     prompt_msg = await context.send(prompt)
-    await context.bot.wait_for('message', check=check, timeout=timeout)
+    message = await context.bot.wait_for('message', check=check, timeout=timeout)
     await prompt_msg.delete()
+    return message

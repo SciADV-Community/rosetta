@@ -4,12 +4,12 @@ from asgiref.sync import sync_to_async
 import click
 
 from playthrough.models import Series, Alias
+from rosetta.utils import ask
 from .utils import series_list_to_embed, series_to_embed
 
 if TYPE_CHECKING:
     from typing import Union, Tuple
     from click import Context
-    from discord import Message
 
 
 @sync_to_async
@@ -51,34 +51,33 @@ async def add(context: 'Context', name: str):
 
 @click.command()
 @click.argument('series', type=str)
+@click.option('--yes', '-y', is_flag=True, help='confirm the deletion')
 @click.pass_context
-async def remove(context: 'Context', series: str):
+async def remove(context: 'Context', series: str, yes: bool = False):
     """Command to remove a series"""
     discord_context = context.obj["discord_context"]
-    channel = discord_context.channel
     series_obj = await _get_series(series)
     if series_obj is None:
         await discord_context.send(
             f'Sorry, it seems that series `{series}` wasn\'t found in our database.'
         )
         return
-
-    await discord_context.send(
-        f'Are you sure you want to delete series `{series_obj}`? (Y/N)'
-    )
-
-    def check(m: 'Message') -> bool:
-        return m.channel == channel and m.content.lower() in ['y', 'n', 'yes', 'no']
-
-    message = await discord_context.bot.wait_for('message', check=check, timeout=15)
-    if message is None:
-        await discord_context.send('You forgot to reply! Will take that as a no.')
-    else:
-        if message.content.lower() in ['y', 'yes']:
-            await sync_to_async(series_obj.delete)()
-            await discord_context.send(f'Poof! Series `{series_obj}` is gone!')
+    if not yes:
+        message = await ask(
+            discord_context,
+            f'Are you sure you want to delete series `{series_obj}`? (Y/N)',
+            lambda m: m.content.lower() in ['y', 'n', 'yes', 'no']
+        )
+        if message is None:
+            await discord_context.send('You forgot to reply! Will take that as a no.')
         else:
-            await discord_context.send('Alright then!')
+            if message.content.lower() in ['y', 'yes']:
+                yes = True
+            else:
+                await discord_context.send('Alright then!')
+    if yes:
+        await sync_to_async(series_obj.delete)()
+        await discord_context.send(f'Poof! Series `{series_obj}` is gone!')
 
 
 @click.command()
@@ -106,24 +105,29 @@ async def update(
         await discord_context.send(
             f'Sorry, it seems that series `{series}` wasn\'t found in our database.'
         )
-    else:
-        if name is not None:
-            await discord_context.send(f'Setting name to: `{name}`...')
-            series_obj.name = name
-            await sync_to_async(series_obj.save)()
-        if add_aliases is not None:
-            aliases = set([alias.lower() for alias in add_aliases.split(',')])
-            for alias in [a for a in aliases if len(a) > 2]:
-                await discord_context.send(f'Adding alias: `{alias}`...')
-                await sync_to_async(Alias.objects.create)(
-                    content_object=series_obj, alias=alias
-                )
-        if remove_aliases is not None:
-            aliases = set([alias.lower() for alias in remove_aliases.split(',')])
-            for alias in [a for a in aliases if len(a) > 2]:
-                await discord_context.send(f'Removing alias: `{alias}`...')
-                await _delete_alias(alias)
-        await discord_context.send('Successfully saved changes!')
+        return
+    if name is None and add_aliases is None and remove_aliases is None:
+        await discord_context.send(
+            'Expecting at least 1 option. Use `--help` if you need help.'
+        )
+        return
+    if name is not None:
+        await discord_context.send(f'Setting name to: `{name}`...')
+        series_obj.name = name
+        await sync_to_async(series_obj.save)()
+    if add_aliases is not None:
+        aliases = set([alias.lower() for alias in add_aliases.split(',')])
+        for alias in [a for a in aliases if len(a) > 2]:
+            await discord_context.send(f'Adding alias: `{alias}`...')
+            await sync_to_async(Alias.objects.create)(
+                content_object=series_obj, alias=alias
+            )
+    if remove_aliases is not None:
+        aliases = set([alias.lower() for alias in remove_aliases.split(',')])
+        for alias in [a for a in aliases if len(a) > 2]:
+            await discord_context.send(f'Removing alias: `{alias}`...')
+            await _delete_alias(alias)
+    await discord_context.send(f'Successfully saved changes to `{series_obj}`!')
 
 
 @click.command(name='list')

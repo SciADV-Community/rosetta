@@ -116,41 +116,47 @@ async def update(
         await discord_context.send(
             f'Sorry, it seems that game `{game}` wasn\'t found in our database.'
         )
-    else:
-        if name is not None:
-            await discord_context.send(f'Setting name to: `{name}`...')
-            game_obj.name = name
+        return
+    if name is None and series is None and channel_suffix is None\
+            and add_aliases is None and remove_aliases is None:
+        await discord_context.send(
+            'Expecting at least 1 option. Use `--help` if you need help.'
+        )
+        return
+    if name is not None:
+        await discord_context.send(f'Setting name to: `{name}`...')
+        game_obj.name = name
+        await sync_to_async(game_obj.save)()
+    if series is not None:
+        try:
+            await discord_context.send(f'Setting series to: `{series}`...')
+            series_obj = await sync_to_async(Series.get_by_name_or_alias)(series)
+            game_obj.series = series_obj
             await sync_to_async(game_obj.save)()
-        if series is not None:
-            try:
-                await discord_context.send(f'Setting series to: `{series}`...')
-                series_obj = await sync_to_async(Series.get_by_name_or_alias)(series)
-                game_obj.series = series_obj
-                await sync_to_async(game_obj.save)()
-            except (Series.DoesNotExist):
-                await discord_context.send('Failed to set series.')
-                await discord_context.send(
-                    f'Series `{series}` was not found in our database.'
-                )
-        if channel_suffix is not None:
+        except (Series.DoesNotExist):
+            await discord_context.send('Failed to set series.')
             await discord_context.send(
-                f'Setting channel suffix to: `{channel_suffix}`...'
+                f'Series `{series}` was not found in our database.'
             )
-            game_obj.channel_suffix = channel_suffix
-            await sync_to_async(game_obj.save)()
-        if add_aliases is not None:
-            aliases = set([alias.lower() for alias in add_aliases.split(',')])
-            for alias in [a for a in aliases if len(a) > 2]:
-                await discord_context.send(f'Adding alias: `{alias}`...')
-                await sync_to_async(Alias.objects.create)(
-                    content_object=game_obj, alias=alias
-                )
-        if remove_aliases is not None:
-            aliases = set([alias.lower() for alias in remove_aliases.split(',')])
-            for alias in [a for a in aliases if len(a) > 2]:
-                await discord_context.send(f'Removing alias: `{alias}`...')
-                await _delete_alias(alias)
-        await discord_context.send('Successfully saved changes!')
+    if channel_suffix is not None:
+        await discord_context.send(
+            f'Setting channel suffix to: `{channel_suffix}`...'
+        )
+        game_obj.channel_suffix = channel_suffix
+        await sync_to_async(game_obj.save)()
+    if add_aliases is not None:
+        aliases = set([alias.lower() for alias in add_aliases.split(',')])
+        for alias in [a for a in aliases if len(a) > 2]:
+            await discord_context.send(f'Adding alias: `{alias}`...')
+            await sync_to_async(Alias.objects.create)(
+                content_object=game_obj, alias=alias
+            )
+    if remove_aliases is not None:
+        aliases = set([alias.lower() for alias in remove_aliases.split(',')])
+        for alias in [a for a in aliases if len(a) > 2]:
+            await discord_context.send(f'Removing alias: `{alias}`...')
+            await _delete_alias(alias)
+    await discord_context.send(f'Successfully saved changes to `{game_obj}`!')
 
 
 @click.command()

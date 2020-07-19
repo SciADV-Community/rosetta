@@ -1,8 +1,8 @@
 import click
 
 from .game import game
-from .channel import channel
 from .series import series
+from .guild import guild
 
 
 @click.group()
@@ -13,8 +13,8 @@ def admin(context):
 
 
 admin.add_command(game)
-admin.add_command(channel)
 admin.add_command(series)
+admin.add_command(guild)
 
 
 __all__ = [
