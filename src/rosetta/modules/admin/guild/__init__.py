@@ -1,6 +1,6 @@
 import click
 
-from .commands import add_game, remove_game, update_game
+from .game_commands import game
 
 
 @click.group()
@@ -10,9 +10,7 @@ def guild(context):
     pass
 
 
-guild.add_command(add_game)
-guild.add_command(remove_game)
-guild.add_command(update_game)
+guild.add_command(game)
 
 
 __all__ = [
