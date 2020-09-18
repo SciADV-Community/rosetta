@@ -4,7 +4,7 @@ import logging
 from asgiref.sync import sync_to_async
 from discord.ext import commands
 from playthrough.models import Guild
-from rosetta import config, utils
+from rosetta import config, utils, checks
 
 # Logging
 logging.config.fileConfig('logging.conf', defaults={'logfilename': 'rosetta-log.log'})
@@ -32,6 +32,7 @@ async def on_ready():
 
 # Commands
 @client.command(pass_context=True)
+@checks.is_bot_admin()
 async def load(context, module: str = None):
     """Load a module."""
     if not module:
@@ -45,6 +46,7 @@ async def load(context, module: str = None):
 
 # Unloading a module
 @client.command(pass_context=True)
+@checks.is_bot_admin()
 async def unload(context, module: str = None):
     """Unload a module."""
     if not module:
@@ -58,6 +60,7 @@ async def unload(context, module: str = None):
 
 # Reloading a module
 @client.command(pass_context=True)
+@checks.is_bot_admin()
 async def reload(context, module: str = None):
     """Reload a module."""
     if module:
@@ -73,11 +76,6 @@ async def reload(context, module: str = None):
             unloaded = await utils.unload_module(client, module, context)
             if unloaded:
                 await utils.load_module(client, module, context)
-        else:
-            logger.warning(
-                "Unauthorized user %s attempted to reload all modules.",
-                context.author.username,
-            )
 
 
 @client.event
@@ -90,8 +88,9 @@ async def on_message(message):
 @client.event
 async def on_command_error(context, error):
     """Handle error-handling from commands."""
-    command = context.message.content.split()[0][1:]
-    logger.error("Error occured for command %s: %s", command, error)
+    if type(error) != commands.errors.CheckFailure:
+        command = context.message.content.split()[0][1:]
+        logger.error("Error occurred for command %s: %s", command, error)
 
 
 @client.event
@@ -106,8 +105,7 @@ async def on_guild_join(guild):
 async def on_guild_remove(guild):
     """Handle leaving a guild."""
     logger.info(f'Left guild: {guild.name} ({guild.id})')
-    guild_obj = await sync_to_async(Guild.objects.get)(id=guild.id)
-    await sync_to_async(guild_obj.delete)()
+    guild_obj = await sync_to_async(Guild.objects.get(id=guild.id).delete)()
     logger.info(f'Deleted Guild {guild_obj} from the database.')
 
 

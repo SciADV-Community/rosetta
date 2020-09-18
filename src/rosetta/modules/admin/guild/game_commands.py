@@ -5,7 +5,7 @@ import click
 from discord import Colour
 from discord.utils import get
 
-from playthrough.models import GameConfig, Game, Category
+from playthrough.models import GameConfig, Game
 from rosetta.utils import ask
 from .utils import game_config_to_embed, config_list_to_embed
 
@@ -23,31 +23,11 @@ def _get_game(game: str) -> 'Union[Game,None]':
 
 
 @sync_to_async
-def _get_game_config(guild_id: str, game: str) -> 'Union[GameConfig,None]':
-    try:
-        game = Game.get_by_name_or_alias(game)
-        try:
-            return GameConfig.objects\
-                .select_related('category', 'game', 'guild').get(
-                    guild_id=guild_id, game=game
-                )
-        except (GameConfig.DoesNotExist):
-            return None
-    except (Game.DoesNotExist):
-        return None
-
-
-@sync_to_async
 def _get_all_game_configs(guild_id: str) -> 'List[GameConfig]':
     return list(
-        GameConfig.objects.select_related('game', 'guild', 'category')
+        GameConfig.objects.select_related('game', 'guild')
         .filter(guild_id=guild_id).all()
     )
-
-
-@sync_to_async
-def _get_category(_id: str, guild_id: str) -> Category:
-    return Category.objects.get_or_create(id=_id, guild_id=guild_id)[0]
 
 
 @click.group()
@@ -63,20 +43,19 @@ def game(context: 'Context'):
 @click.option(
     '--role-id', '-r', type=str, help='the id of the completion role'
 )
-@click.option(
-    '--category-id', '-c', type=str, help='the id the category to add new channels to'
-)
 @click.pass_context
 async def add(
     context: 'Context',
     game: str,
     create_role: bool = False,
-    role_id: str = None,
-    category_id: str = None
+    role_id: str = None
 ):
     """Command to add a game to the guild."""
     discord_context = context.obj["discord_context"]
-    game_config = await _get_game_config(discord_context.guild.id, game)
+    game_config = await sync_to_async(GameConfig.get_by_game_alias)(
+        game,
+        discord_context.guild.id
+    )
     if game_config is not None:
         await discord_context.send(
             (f'Game game `{game_config.game}` is already added to the Guild.\n'
@@ -89,15 +68,6 @@ async def add(
             f'Sorry, it seems that game `{game}` wasn\'t found in our database.'
         )
         return
-    category_obj = None
-    if category_id is not None:
-        category = get(discord_context.guild.categories, id=int(category_id))
-        if category is None:
-            await discord_context.send(
-                f'Category `{category_id}` not found in the Guild.'
-            )
-        else:
-            category_obj = await _get_category(category_id, discord_context.guild.id)
     if role_id is not None:
         role = get(discord_context.guild.roles, id=int(role_id))
         if role is None:
@@ -137,7 +107,6 @@ async def add(
     await sync_to_async(GameConfig.objects.create)(
         game=game_obj,
         guild_id=discord_context.guild.id,
-        category=category_obj,
         completion_role_id=role_id
     )
     await discord_context.send(f'Added `{game_obj}` to the guild!')
@@ -150,7 +119,10 @@ async def add(
 async def remove(context: 'Context', game: str, yes: bool = False):
     """Command to remove a game from the guild."""
     discord_context = context.obj["discord_context"]
-    game_config = await _get_game_config(discord_context.guild.id, game)
+    game_config = await sync_to_async(GameConfig.get_by_game_alias)(
+        game,
+        discord_context.guild.id
+    )
     if game_config is None:
         await discord_context.send(
             (f'Configuration for `{game}` not found. '
@@ -180,26 +152,25 @@ async def remove(context: 'Context', game: str, yes: bool = False):
 @game.command()
 @click.argument('game', type=str)
 @click.option('--role-id', '-r', type=str, help='the id of the completion role')
-@click.option(
-    '--category-id', '-c', type=str, help='the id the category to add new channels to'
-)
 @click.pass_context
 async def update(
     context: 'Context',
     game: str,
-    role_id: str = None,
-    category_id: str = None
+    role_id: str = None
 ):
     """Command to update a game's configuration for the guild."""
     discord_context = context.obj["discord_context"]
-    game_config = await _get_game_config(discord_context.guild.id, game)
+    game_config = await sync_to_async(GameConfig.get_by_game_alias)(
+        game,
+        discord_context.guild.id
+    )
     if game_config is None:
         await discord_context.send(
             (f'Configuration for `{game}` not found.',
              'Does the game exist and is it added to the Guild?')
         )
         return
-    if role_id is None and category_id is None:
+    if role_id is None:
         await discord_context.send(
             'Expecting at least 1 option. Use `--help` if you need help.'
         )
@@ -215,18 +186,6 @@ async def update(
                 await discord_context.send(f'Role `{role_id}` not found in the Guild.')
             else:
                 await sync_to_async(game_config.save)()
-    if category_id is not None:
-        category = get(discord_context.guild.categories, id=int(category_id))
-        if category is None:
-            await discord_context.send(
-                f'Category `{category_id}` not found in the Guild.'
-            )
-        else:
-            await discord_context.send(f'Setting category to: `{category.name}`...')
-            game_config.category = await _get_category(
-                category_id, discord_context.guild.id
-            )
-            await sync_to_async(game_config.save)()
     await discord_context.send(f'Successfully saved changes to {game_config}!')
 
 
@@ -237,8 +196,9 @@ async def _list(context: 'Context', game: str = None):
     """Command to list configured games or inspect a specific one."""
     discord_context = context.obj['discord_context']
     if game is not None:
-        game_config = await _get_game_config(
-            discord_context.guild.id, game
+        game_config = await sync_to_async(GameConfig.get_by_game_alias)(
+            game,
+            discord_context.guild.id
         )
         if game_config is None:
             await discord_context.send((

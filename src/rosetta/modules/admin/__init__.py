@@ -2,7 +2,7 @@ import shlex
 import click
 import logging
 from discord.ext.commands import Cog, command
-from rosetta import utils, config
+from rosetta import checks
 
 from .admin import admin
 
@@ -15,15 +15,11 @@ class Admin(Cog):
         self.logger.info(f'Module {self.__class__.__name__} loaded successfully.')
 
     @command(pass_context=True)
+    @checks.is_bot_admin()
     async def admin(self, context, *, args):
-        if not await utils.is_bot_admin(context.author):
-            self.logger.info(
-                'Unauthorized user %s attempted to invoke admin command.',
-                context.author.name
-            )
-            await context.send('You are not authorized to use the admin command.')
-            return
+        """Admin command-line tool.
 
+        Use 'admin --help' flag to get more info on it."""
         args = shlex.split(args)
         try:
             call = admin(args, standalone_mode=False, obj={'discord_context': context})
@@ -31,7 +27,7 @@ class Admin(Cog):
             if status == 0:  # Click returns 0 if --help was called directly
                 # Hack to get help at the right level
                 target = admin
-                info_name = f'{config.PREFIX}admin'
+                info_name = f'{context.prefix}admin'
                 with click.Context(target, info_name=info_name) as ctx:
                     for arg in args:
                         if arg != '--help' and not arg.startswith('-'):

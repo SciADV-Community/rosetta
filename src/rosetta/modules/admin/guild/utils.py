@@ -38,10 +38,6 @@ def game_config_to_embed(config: GameConfig, context: 'Context') -> Embed:
         timestamp=datetime.now(),
         colour=Colour.gold()
     )
-    ret.add_field(
-        name='Category',
-        value=str(config.category)
-    )
     role = get(context.guild.roles, id=int(config.completion_role_id))
     ret.add_field(
         name='Role',
