@@ -5,7 +5,8 @@ from asgiref.sync import sync_to_async
 from discord import HTTPException, PermissionOverwrite
 from discord.ext.commands import Cog, command
 from discord.utils import get
-from playthrough.models import Channel, Game, GameConfig, User
+from playthrough.models import Channel, Game, GameConfig, User, Archive
+from rosetta.utils.exporter import export_channel
 
 if TYPE_CHECKING:
     from typing import Union, List
@@ -95,6 +96,21 @@ def get_channel_completion_role(
     :param game_config: The game to get the completion role for.
     :return: The Role or None"""
     return get(context.guild.roles, id=int(game_config.completion_role_id))
+
+
+async def archive_channel(context: 'Context', game_config: 'GameConfig'):
+    """Utility to archive a playthrough channel for a certain game
+
+    :param context: The Discord Context
+    :param game_config: The game archive the channel for."""
+    existing_channel = await get_existing_channel(context, game_config.game)
+    if existing_channel:
+        export_channel(existing_channel.id)
+        channel_in_guild = get(context.guild.channels, id=int(existing_channel.id))
+        await channel_in_guild.delete()
+        # TODO Get file
+        # TODO Get users
+        await sync_to_async(Archive.objects.create)(channel=existing_channel, file=None)
 
 
 class Playthrough(Cog):
@@ -199,7 +215,7 @@ class Playthrough(Cog):
                 )
                 return
         # Create channel in the database
-        await create_channel_in_db(context, game_config, channel)
+        await create_channel_in_db(context, game_config, channel.id)
         # Send instructions & pin
         instructions_msg = await channel.send(self.instructions)
         await channel.send(context.message.author.mention)
@@ -214,7 +230,20 @@ class Playthrough(Cog):
     @command(pass_context=True)
     async def drop(self, context, *, game: str):
         """Drop a game. Closes playthrough channel."""
-        pass
+        await context.trigger_typing()
+        # Get game config
+        game_config = await get_game_config(context, game)
+        if not game_config:
+            await context.send((
+                f'Game {game} does not exist, or it is not configured in this guild.'
+            ))
+            return
+        existing_channel = await get_existing_channel(context, game_config.game)
+        if existing_channel:
+            export_channel(existing_channel.id)
+            channel_in_guild = get(context.guild.channels, id=int(existing_channel.id))
+            await channel_in_guild.delete()
+        await context.send(f'And that\'s that. You dropped {game_config.game}.')
 
     @command(pass_context=True)
     async def resume(self, context, *, game: str):
