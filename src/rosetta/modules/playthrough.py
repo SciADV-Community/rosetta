@@ -3,10 +3,12 @@ from typing import TYPE_CHECKING
 
 from asgiref.sync import sync_to_async
 from discord import HTTPException, PermissionOverwrite
+from django.core.files import File
 from discord.ext.commands import Cog, command
 from discord.utils import get
 from playthrough.models import Channel, Game, GameConfig, User, Archive
 from rosetta.utils.exporter import export_channel
+from rosetta.config import PREFIX
 
 if TYPE_CHECKING:
     from typing import Union, List
@@ -28,10 +30,13 @@ async def get_existing_channel(
         owner_id=context.author.id, game=game
     ).first)()
     if existing_channel is not None:
+        archive = await sync_to_async(Archive.objects.filter(
+            channel=existing_channel
+        ).first)()
         # If the user supposedly has an existing channel
         # if it's not in the guild, remove from the DB
         channel_in_guild = get(context.guild.channels, id=int(existing_channel.id))
-        if channel_in_guild is None:
+        if channel_in_guild is None and archive is None:
             await sync_to_async(existing_channel.delete)()
         else:  # Otherwise, user already has a channel!
             return existing_channel
@@ -105,12 +110,19 @@ async def archive_channel(context: 'Context', game_config: 'GameConfig'):
     :param game_config: The game archive the channel for."""
     existing_channel = await get_existing_channel(context, game_config.game)
     if existing_channel:
-        export_channel(existing_channel.id)
+        exported_channel_file_path = export_channel(existing_channel.id)
+        exported_channel_file = File(
+            file=open(exported_channel_file_path),
+            name=exported_channel_file_path.name
+        )
         channel_in_guild = get(context.guild.channels, id=int(existing_channel.id))
         await channel_in_guild.delete()
-        # TODO Get file
-        # TODO Get users
-        await sync_to_async(Archive.objects.create)(channel=existing_channel, file=None)
+        await sync_to_async(Archive.objects.create)(
+            channel=existing_channel,
+            file=exported_channel_file
+        )
+        exported_channel_file.close()
+        exported_channel_file_path.unlink()
 
 
 class Playthrough(Cog):
@@ -141,8 +153,9 @@ class Playthrough(Cog):
         if existing_channel:
             await context.send((
                 f'You already have a channel for `{game_config.game}`! '
-                'You can only have one at a time. If this is an error ask a moderator'
-                'for help.'
+                'You can only have one at a time. Even if you have one archived. '
+                f'If you want to continue playing, use `{PREFIX}resume`! '
+                'If this is an error ask a moderator for help. '
             ))
             return
         # Get category & channel name
@@ -238,11 +251,7 @@ class Playthrough(Cog):
                 f'Game {game} does not exist, or it is not configured in this guild.'
             ))
             return
-        existing_channel = await get_existing_channel(context, game_config.game)
-        if existing_channel:
-            export_channel(existing_channel.id)
-            channel_in_guild = get(context.guild.channels, id=int(existing_channel.id))
-            await channel_in_guild.delete()
+        await archive_channel(context, game_config)
         await context.send(f'And that\'s that. You dropped {game_config.game}.')
 
     @command(pass_context=True)

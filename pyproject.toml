@@ -9,7 +9,7 @@ license = "MIT"
 python = "^3.7"
 click = "^7.0"
 "discord.py" = "^1.4.1"
-genki = {path = "../genki"}
+genki = {path = "../genki", develop = true}
 docker = "^4.3.1"
 
 

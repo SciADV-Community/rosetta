@@ -1,22 +1,33 @@
-import docker
 import os
-from rosetta.config import TOKEN
+from pathlib import Path
+import docker
+from rosetta.config import TOKEN, ARCHIVE_ROOT
 
 
 client = docker.from_env()
 
 
-def export_channel(channel_id: str):
+def export_channel(channel_id: str) -> Path:
+    """Export a certain channel by its id.
+    :param channel_id: The ID of the channel to export.
+    :return: The `pathlib.Path` of the archive."""
     client.containers.run(
         'tyrrrz/discordchatexporter:stable',
-        f'export -b -t {TOKEN} -c {channel_id} -o {channel_id}.xml',
+        f'export -c {channel_id} -o {channel_id}.html',
+        stdout=True,
         auto_remove=True,
         volumes={
-            f'{os.getcwd()}/archives': {
+            str(ARCHIVE_ROOT.resolve()): {
                 'bind': '/app/out', 'mode': 'rw'
             }
+        },
+        user=f'{os.getuid()}:{os.getgid()}',
+        environment={
+            "DISCORD_TOKEN": TOKEN,
+            "DISCORD_TOKEN_BOT": True
         }
     )
+    return ARCHIVE_ROOT / f'{channel_id}.html'
 
 
 __all__ = ['export_channel']
