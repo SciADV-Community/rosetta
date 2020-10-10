@@ -18,9 +18,12 @@ if TYPE_CHECKING:
     from discord.ext.commands import Context
 
 
+logger = logging.getLogger(__name__)
+
+
 async def get_existing_channel(
     context: 'Context', game: 'Game'
-) -> 'Union[DiscordChannel,None]':
+) -> 'Union[Channel,None]':
     """Utility function to get the existing channel for a user for a game.
 
     :param context: The Discord Context.
@@ -91,7 +94,7 @@ async def create_channel_in_db(
     )
 
 
-def get_channel_completion_role(
+def get_game_completion_role(
     context: 'Context',
     game_config: 'GameConfig'
 ) -> 'Union[Role,None]':
@@ -103,26 +106,125 @@ def get_channel_completion_role(
     return get(context.guild.roles, id=int(game_config.completion_role_id))
 
 
-async def archive_channel(context: 'Context', game_config: 'GameConfig'):
+async def grant_completion_role(context: 'Context', game_config: 'GameConfig'):
+    """Grant the message author the completion role for a certain game.
+
+    :param context: The Discord Context.
+    :param game_config: The game to get the completion role for."""
+    completion_role = get_game_completion_role(context, game_config)
+    await context.message.author.add_roles(completion_role)
+
+
+async def archive_channel(context: 'Context', channel: 'Channel'):
     """Utility to archive a playthrough channel for a certain game
 
     :param context: The Discord Context
-    :param game_config: The game archive the channel for."""
-    existing_channel = await get_existing_channel(context, game_config.game)
-    if existing_channel:
-        exported_channel_file_path = export_channel(existing_channel.id)
-        exported_channel_file = File(
-            file=open(exported_channel_file_path),
-            name=exported_channel_file_path.name
+    :param channel: The Channel to archive."""
+    channel_in_guild = get(context.guild.channels, id=int(channel.id))
+    if not channel_in_guild:
+        return
+    exported_channel_file_path = export_channel(channel.id)
+    exported_channel_file = File(
+        file=open(exported_channel_file_path),
+        name=exported_channel_file_path.name
+    )
+    await channel_in_guild.delete()
+    await sync_to_async(Archive.objects.create)(
+        channel=channel,
+        file=exported_channel_file
+    )
+    exported_channel_file.close()
+    exported_channel_file_path.unlink()
+
+
+async def get_permissions(
+    context: 'Context', game_config: 'GameConfig'
+) -> 'Union[dict,None]':
+    """Get permissions for a playthrough channel
+
+    :param context: The Discord Context
+    :param game_config: The game to get the permissions for."""
+    completion_role = get_game_completion_role(context, game_config)
+    if completion_role is None:
+        await context.send((
+            f'There seems to be a misconfiguration for {game_config.game}'
+            ' on the server. Please contact an admin.'
+        ))
+        return None
+    permissions = {
+        context.message.guild.me: PermissionOverwrite(
+            read_messages=True,
+            read_message_history=True,
+            manage_messages=True,
+            send_messages=True,
+        ),
+        context.message.guild.default_role: PermissionOverwrite(
+            read_messages=False,
+            read_message_history=False,
+        ),
+        context.message.author: PermissionOverwrite(
+            read_messages=True,
+            read_message_history=True,
+            send_messages=True,
+            manage_messages=True,
+            manage_channels=True,
+        ),
+        completion_role: PermissionOverwrite(
+            read_messages=True,
+            read_message_history=True,
         )
-        channel_in_guild = get(context.guild.channels, id=int(existing_channel.id))
-        await channel_in_guild.delete()
-        await sync_to_async(Archive.objects.create)(
-            channel=existing_channel,
-            file=exported_channel_file
-        )
-        exported_channel_file.close()
-        exported_channel_file_path.unlink()
+    }
+    return permissions
+
+
+async def create_channel(
+    context: 'Context',
+    game_config: 'GameConfig',
+    name: str,
+    permissions: dict
+) -> 'Union[DiscordChannel,None]':
+    """Creates a new playthrough channel in the guild.
+
+    :param context: The Discord Context
+    :param game_config: The game to create a channel for.
+    :param name: The channel name.
+    :param permissions: The permission overwrites for the channel.
+    :param logger: The Logger to use to log things.
+    """
+    # Get category & channel name
+    categories = await get_game_categories(context, game_config)
+    channel_created = False
+    for category in categories:
+        try:
+            channel = await context.guild.create_text_channel(
+                name=name, category=category, overwrites=permissions
+            )
+            channel_created = True
+        except HTTPException:
+            pass
+    if not channel_created:
+        try:
+            logger.warn((
+                f'Cap on categories for game `{game_config.game}` reached.'
+                ' Creating a new one...'
+            ))
+            position = None
+            if len(categories) > 0:
+                position = categories[-1].position + 1
+            category = await context.guild.create_category(
+                name=game_config.game.name, position=position
+            )
+            logger.info(f"Created new category for {game_config.game}.")
+            channel = await context.guild.create_text_channel(
+                name=name, category=category, overwrites=permissions
+            )
+            logger.info(f"Created channel {name}.")
+        except (HTTPException) as e:
+            logger.error(
+                f'Error occurred when creating channel {name}', e
+            )
+            return None
+    return channel
 
 
 class Playthrough(Cog):
@@ -146,9 +248,7 @@ class Playthrough(Cog):
                 f'Game {game} does not exist, or it is not configured in this guild.'
             ))
             return
-        game_obj = game_config.game
         # Check for existing channel
-        owner = context.message.author
         existing_channel = await get_existing_channel(context, game_config.game)
         if existing_channel:
             await context.send((
@@ -158,75 +258,19 @@ class Playthrough(Cog):
                 'If this is an error ask a moderator for help. '
             ))
             return
-        # Get category & channel name
-        categories = await get_game_categories(context, game_config)
+        # Channel name
         channel_name = (
             f'{context.author.display_name.lower()}'
             f'{game_config.game.channel_suffix.lower()}'
         )
         # Set Permissions
-        completion_role = get_channel_completion_role(context, game_config)
-        if completion_role is None:
-            await context.send((
-                f'There seems to be a misconfiguration for {game_config.game}'
-                ' on the server. Please contact an admin.'
-            ))
+        permissions = await get_permissions(context, game_config)
+        if permissions is None:
             return
-        permissions = {
-            context.message.guild.me: PermissionOverwrite(
-                read_messages=True,
-                read_message_history=True,
-                manage_messages=True,
-                send_messages=True,
-            ),
-            context.message.guild.default_role: PermissionOverwrite(
-                read_messages=False,
-                read_message_history=False,
-            ),
-            owner: PermissionOverwrite(
-                read_messages=True,
-                read_message_history=True,
-                send_messages=True,
-                manage_messages=True,
-                manage_channels=True,
-            ),
-            completion_role: PermissionOverwrite(
-                read_messages=True,
-                read_message_history=True,
-            )
-        }
         # Try creating the channel
-        channel_created = False
-        for category in categories:
-            try:
-                channel = await context.guild.create_text_channel(
-                    name=channel_name, category=category, overwrites=permissions
-                )
-                channel_created = True
-            except HTTPException:
-                pass
-        if not channel_created:
-            try:
-                self.logger.warn((
-                    f'Cap on categories for game `{game_config.game}` reached.'
-                    ' Creating a new one...'
-                ))
-                position = None
-                if len(categories) > 0:
-                    position = categories[-1].position + 1
-                category = await context.guild.create_category(
-                    name=game_obj.name, position=position
-                )
-                self.logger.info(f"Created new category for {game_config.game}.")
-                channel = await context.guild.create_text_channel(
-                    name=channel_name, category=category, overwrites=permissions
-                )
-                self.logger.info(f"Created channel {channel_name}.")
-            except (HTTPException) as e:
-                self.logger.error(
-                    f'Error occurred when creating channel {channel_name}', e
-                )
-                return
+        channel = await create_channel(context, game_config, channel_name, permissions)
+        if channel is None:
+            return
         # Create channel in the database
         await create_channel_in_db(context, game_config, channel.id)
         # Send instructions & pin
@@ -251,8 +295,15 @@ class Playthrough(Cog):
                 f'Game {game} does not exist, or it is not configured in this guild.'
             ))
             return
-        await archive_channel(context, game_config)
-        await context.send(f'And that\'s that. You dropped {game_config.game}.')
+        existing_channel = await get_existing_channel(context, game_config.game)
+        if existing_channel:
+            await archive_channel(context, existing_channel)
+            await context.send(f'And that\'s that. You dropped {game_config.game}.')
+        else:
+            await context.send((
+                'You don\'t seem to be playing the game (have a channel). '
+                'So this command does nothing.'
+            ))
 
     @command(pass_context=True)
     async def resume(self, context, *, game: str):
@@ -262,7 +313,25 @@ class Playthrough(Cog):
     @command(pass_context=True)
     async def finish(self, context, *, game: str):
         """Finish playing a game. Archives playthrough channel."""
-        pass
+        await context.trigger_typing()
+        # Get game config
+        game_config = await get_game_config(context, game)
+        if not game_config:
+            await context.send((
+                f'Game {game} does not exist, or it is not configured in this guild.'
+            ))
+            return
+        existing_channel = await get_existing_channel(context, game_config.game)
+        if existing_channel:
+            await archive_channel(context, existing_channel)
+            existing_channel.finished = True
+            await sync_to_async(existing_channel.save)()
+        await grant_completion_role(context, game_config)
+        await context.send((
+            f'Hope you enjoyed {game_config.game}! '
+            'If you had a channel it should be archived and you should now'
+            ' be able to see global spoiler channels!'
+        ))
 
     @command(pass_context=True)
     async def reset(self, context, *, game: str):
