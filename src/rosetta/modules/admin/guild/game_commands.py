@@ -58,8 +58,8 @@ async def add(
     )
     if game_config is not None:
         await discord_context.send(
-            (f'Game game `{game_config.game}` is already added to the Guild.\n'
-             'Use `update-game` to update its configuration.')
+            (f'Game `{game_config.game}` is already added to the Guild.\n'
+             'Use `game update` to update its configuration.')
         )
         return
     game_obj = await _get_game(game)
