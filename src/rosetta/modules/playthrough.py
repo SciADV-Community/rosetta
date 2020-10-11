@@ -115,6 +115,15 @@ async def grant_completion_role(context: 'Context', game_config: 'GameConfig'):
     await context.message.author.add_roles(completion_role)
 
 
+async def remove_completion_role(context: 'Context', game_config: 'GameConfig'):
+    """Removes the completion role for a certain game from the message author.
+
+    :param context: The Discord Context.
+    :param game_config: The game to get the completion role for."""
+    completion_role = get_game_completion_role(context, game_config)
+    await context.message.author.remove_roles(completion_role)
+
+
 async def archive_channel(context: 'Context', channel: 'Channel'):
     """Utility to archive a playthrough channel for a certain game
 
@@ -123,6 +132,7 @@ async def archive_channel(context: 'Context', channel: 'Channel'):
     channel_in_guild = get(context.guild.channels, id=int(channel.id))
     if not channel_in_guild:
         return
+    await context.send('Archiving channel, this might take a while....')
     exported_channel_file_path = export_channel(channel.id)
     exported_channel_file = File(
         file=open(exported_channel_file_path),
@@ -312,7 +322,8 @@ class Playthrough(Cog):
 
     @command(pass_context=True)
     async def finish(self, context, *, game: str):
-        """Finish playing a game. Archives playthrough channel."""
+        """Finish playing a game.
+        Grants completion role & archives any playthrough channel."""
         await context.trigger_typing()
         # Get game config
         game_config = await get_game_config(context, game)
@@ -336,6 +347,19 @@ class Playthrough(Cog):
     @command(pass_context=True)
     async def reset(self, context, *, game: str):
         """Reset history on a certain game. Removes completion role."""
+        await context.trigger_typing()
+        # Get game config
+        game_config = await get_game_config(context, game)
+        if not game_config:
+            await context.send((
+                f'Game {game} does not exist, or it is not configured in this guild.'
+            ))
+            return
+        await remove_completion_role(context, game_config)
+        await context.send((
+            f'Your progress on {game_config.game} has been reset. '
+            'The completion role is removed!'
+        ))
         pass
 
 
