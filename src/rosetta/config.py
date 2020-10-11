@@ -7,7 +7,6 @@ DESCRIPTION = os.getenv("BOT_DESCRIPTION", "")
 TOKEN = os.getenv("BOT_TOKEN")
 
 INSTALLED_MODULES = [
-    'modules.dummy',
     'modules.admin',
     'modules.playthrough',
 ]
