@@ -31,15 +31,12 @@ async def get_existing_channel(
     :return: Existing Channel in the guild for a certain game or None"""
     existing_channel = await sync_to_async(Channel.objects.filter(
         owner_id=context.author.id, game=game
-    ).first)()
+    ).prefetch_related('archives').first)()
     if existing_channel is not None:
-        archive = await sync_to_async(Archive.objects.filter(
-            channel=existing_channel
-        ).first)()
         # If the user supposedly has an existing channel
         # if it's not in the guild, remove from the DB
         channel_in_guild = get(context.guild.channels, id=int(existing_channel.id))
-        if channel_in_guild is None and archive is None:
+        if channel_in_guild is None and len(existing_channel.archives.all()) == 0:
             await sync_to_async(existing_channel.delete)()
         else:  # Otherwise, user already has a channel!
             return existing_channel
@@ -80,17 +77,20 @@ async def get_game_categories(
 async def create_channel_in_db(
     context: 'Context',
     game_config: 'GameConfig',
-    channel_id: str
+    channel_id: str,
+    finished: bool = False
 ) -> Channel:
     """Utility function to create a channel in the database
 
     :param context: The Discord Context.
     :param game_config: The GameConfig to use for extra info.
+    :param finished: Whether or not the channel is finished.
     :return: The Channel that was created"""
     owner = (await sync_to_async(User.objects.get_or_create)(id=context.author.id))[0]
     return await sync_to_async(Channel.objects.create)(
         id=channel_id,
-        owner=owner, guild_id=context.guild.id, game=game_config.game
+        owner=owner, guild_id=context.guild.id, game=game_config.game,
+        finished=finished
     )
 
 
@@ -203,38 +203,37 @@ async def create_channel(
     """
     # Get category & channel name
     categories = await get_game_categories(context, game_config)
-    channel_created = False
     for category in categories:
         try:
             channel = await context.guild.create_text_channel(
                 name=name, category=category, overwrites=permissions
             )
-            channel_created = True
+            return channel
         except HTTPException:
             pass
-    if not channel_created:
-        try:
-            logger.warn((
-                f'Cap on categories for game `{game_config.game}` reached.'
-                ' Creating a new one...'
-            ))
-            position = None
-            if len(categories) > 0:
-                position = categories[-1].position + 1
-            category = await context.guild.create_category(
-                name=game_config.game.name, position=position
-            )
-            logger.info(f"Created new category for {game_config.game}.")
-            channel = await context.guild.create_text_channel(
-                name=name, category=category, overwrites=permissions
-            )
-            logger.info(f"Created channel {name}.")
-        except (HTTPException) as e:
-            logger.error(
-                f'Error occurred when creating channel {name}', e
-            )
-            return None
-    return channel
+
+    try:
+        logger.warn((
+            f'Cap on categories for game `{game_config.game}` reached.'
+            ' Creating a new one...'
+        ))
+        position = None
+        if len(categories) > 0:
+            position = categories[-1].position + 1
+        category = await context.guild.create_category(
+            name=game_config.game.name, position=position
+        )
+        logger.info(f"Created new category for {game_config.game}.")
+        channel = await context.guild.create_text_channel(
+            name=name, category=category, overwrites=permissions
+        )
+        logger.info(f"Created channel {name}.")
+        return channel
+    except (HTTPException) as e:
+        logger.error(
+            f'Error occurred when creating channel {name}', e
+        )
+        return None
 
 
 class Playthrough(Cog):
@@ -261,11 +260,29 @@ class Playthrough(Cog):
         # Check for existing channel
         existing_channel = await get_existing_channel(context, game_config.game)
         if existing_channel:
+            if len(existing_channel.archives.all()) > 0:
+                have = "had"
+            else:
+                have = "have"
+            message = (
+                f'You already {have} a channel for `{game_config.game}`! '
+            )
+            if existing_channel.finished:
+                message += f'If you want to replay, use `{PREFIX}replay {game}`! '
+            else:
+                message += (
+                    'If you want to continue playing, '
+                    f'use `{PREFIX}resume {game}`. '
+                )
+            message += 'If this is an error ask a moderator for help. '
+            await context.send(message)
+            return
+        # Check if the user already finished the game
+        completion_role = get_game_completion_role(context, game_config)
+        if completion_role in context.message.author.roles:
             await context.send((
-                f'You already have a channel for `{game_config.game}`! '
-                'You can only have one at a time. Even if you have one archived. '
-                f'If you want to continue playing, use `{PREFIX}resume`! '
-                'If this is an error ask a moderator for help. '
+                f'Looks like you have already played {game_config.game}. '
+                f'Try `{PREFIX}replay {game}`.'
             ))
             return
         # Channel name
@@ -287,12 +304,70 @@ class Playthrough(Cog):
         instructions_msg = await channel.send(self.instructions)
         await channel.send(context.message.author.mention)
         await instructions_msg.pin()
-        await context.send(f'Successfully created your channel: {channel_name}')
+        await context.send(f'Successfully created your channel: {channel.mention}')
 
     @command(pass_context=True)
     async def replay(self, context, *, game: str):
         """Create a replay channel."""
-        pass
+        # Get game config
+        game_config = await get_game_config(context, game)
+        if not game_config:
+            await context.send((
+                f'Game {game} does not exist, or it is not configured in this guild.'
+            ))
+            return
+        # Check for existing channel / completion status
+        completion_role = get_game_completion_role(context, game_config)
+        existing_channel = await get_existing_channel(context, game_config.game)
+        author = context.message.author
+        if existing_channel is not None:
+            channel_in_guild = get(context.guild.channels, id=int(existing_channel.id))
+        else:
+            channel_in_guild = None
+        if existing_channel is None and completion_role not in author.roles:
+            await context.send((
+                f'Doesn\'t seem like you have played {game_config.game} yet. '
+                f'Try `{PREFIX}play {game}`.'
+            ))
+            return
+        elif existing_channel is not None and not existing_channel.finished:
+            await context.send((
+                f'Doesn\'t seem like you have finished {game_config.game} yet.'
+            ))
+            return
+        elif channel_in_guild is not None:
+            await context.send((
+                f'Seems like you still have a replay channel for {game_config.game} '
+                'in this server.'
+            ))
+            return
+        # Channel name
+        channel_name = (
+            f'{context.author.display_name.lower()}'
+            f'{game_config.game.channel_suffix.lower()}'.replace('play', 'replay')
+        )
+        # Set Permissions
+        permissions = await get_permissions(context, game_config)
+        if permissions is None:
+            return
+        # Try creating the channel
+        channel = await create_channel(context, game_config, channel_name, permissions)
+        if channel is None:
+            return
+        # Update channel in the database
+        if not existing_channel:
+            existing_channel = await create_channel_in_db(
+                context, game_config, channel.id, finished=True
+            )
+        else:
+            await sync_to_async(existing_channel.update_id)(channel.id)
+        # Send instructions & pin
+        instructions_msg = await channel.send(self.instructions)
+        await channel.send(author.mention)
+        await instructions_msg.pin()
+        await context.send(
+            f'Successfully created your replay channel: {channel.mention}'
+        )
 
     @command(pass_context=True)
     async def drop(self, context, *, game: str):
@@ -318,7 +393,57 @@ class Playthrough(Cog):
     @command(pass_context=True)
     async def resume(self, context, *, game: str):
         """Resume playing a game. Re-creates playthrough channel."""
-        pass
+        # Get game config
+        game_config = await get_game_config(context, game)
+        if not game_config:
+            await context.send((
+                f'Game {game} does not exist, or it is not configured in this guild.'
+            ))
+            return
+        # Check for existing channel / completion status
+        existing_channel = await get_existing_channel(context, game_config.game)
+        author = context.message.author
+        channel_in_guild = get(context.guild.channels, id=int(existing_channel.id))
+        if existing_channel is None:
+            await context.send((
+                f'Doesn\'t seem like you have played {game_config.game} yet. '
+                f'Try `{PREFIX}play {game}`.'
+            ))
+            return
+        elif existing_channel is not None and existing_channel.finished:
+            await context.send((
+                f'Seems like you have already finished {game_config.game}. '
+                f'Try `{PREFIX}replay {game}`.'
+            ))
+            return
+        elif channel_in_guild is not None:
+            await context.send((
+                'Seems like you still have a playthrough channel '
+                f'for {game_config.game} in this server.'
+            ))
+            return
+        # Channel name
+        channel_name = (
+            f'{context.author.display_name.lower()}'
+            f'{game_config.game.channel_suffix.lower()}'
+        )
+        # Set Permissions
+        permissions = await get_permissions(context, game_config)
+        if permissions is None:
+            return
+        # Try creating the channel
+        channel = await create_channel(context, game_config, channel_name, permissions)
+        if channel is None:
+            return
+        # Update channel in the database
+        await sync_to_async(existing_channel.update_id)(channel.id)
+        # Send instructions & pin
+        instructions_msg = await channel.send(self.instructions)
+        await channel.send(author.mention)
+        await instructions_msg.pin()
+        await context.send(
+            f'Successfully created your resume channel: {channel.mention}'
+        )
 
     @command(pass_context=True)
     async def finish(self, context, *, game: str):
