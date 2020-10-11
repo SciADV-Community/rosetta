@@ -3,8 +3,8 @@ from typing import List, Union
 
 from asgiref.sync import sync_to_async
 import click
-from click.core import Context
-import discord
+from click import Context as ClickContext
+from discord.ext.commands import Context as DiscordContext
 from discord.colour import Colour
 from discord.utils import get
 from django.db import IntegrityError
@@ -12,6 +12,7 @@ from django.db import IntegrityError
 from playthrough.models import GameConfig, MetaRoleConfig
 from rosetta.utils import ask
 from rosetta.utils.role_expr import MetaRoleEvaluator
+from .utils import meta_role_to_embed, meta_roles_to_embed
 
 
 def _clean_expression(expression: str) -> str:
@@ -25,7 +26,7 @@ def _clean_expression(expression: str) -> str:
 
 
 async def _validate_expression(
-    context: discord.Context, expression: str
+    context: DiscordContext, expression: str
 ) -> Union[List[GameConfig], None]:
     """Check whether or not the given expression is valid.
 
@@ -64,7 +65,7 @@ async def _validate_expression(
 
 @click.group()
 @click.pass_context
-def meta_role(context: Context):
+def meta_role(context: ClickContext):
     """Manage meta role operations."""
     pass
 
@@ -82,7 +83,7 @@ def meta_role(context: Context):
 )
 @click.pass_context
 async def add(
-    context: Context,
+    context: ClickContext,
     name: str,
     expression: str,
     colour: str = None,
@@ -135,7 +136,7 @@ async def add(
 @click.argument('name', type=str)
 @click.option('--yes', '-y', is_flag=True, help='confirm the removal')
 @click.pass_context
-async def remove(context: Context, name: str, yes: bool = False):
+async def remove(context: ClickContext, name: str, yes: bool = False):
     """Remove a meta role."""
     discord_context = context.obj["discord_context"]
     existing_meta_role: MetaRoleConfig = await sync_to_async(
@@ -180,7 +181,7 @@ async def remove(context: Context, name: str, yes: bool = False):
 )
 @click.pass_context
 async def update(
-    context: Context,
+    context: ClickContext,
     name: str,
     new_name: str = None,
     expression: str = None,
@@ -227,18 +228,38 @@ async def update(
             return
         else:
             await sync_to_async(existing_meta_role.save)()
-            await discord_context.send(f'Updated the colour to #{colour}.')  
+            await discord_context.send(f'Updated the colour to #{colour}.')
     if role_id is not None:
         existing_meta_role.role_id = role_id
         await sync_to_async(existing_meta_role.save)()
         await discord_context.send(f'Updated the role to <@&{role_id}>')
 
 
-@meta_role.command()
+@meta_role.command(name='list')
+@click.argument('meta-role', type=str, required=False)
 @click.pass_context
-def list(context: Context):
+async def _list(context: ClickContext, meta_role: str = None):
     """List meta roles."""
-    pass
+    discord_context: DiscordContext = context.obj['discord_context']
+    if meta_role is not None:
+        existing_meta_role: MetaRoleConfig = await sync_to_async(
+            MetaRoleConfig.objects.filter(name=meta_role).first
+        )()
+        if existing_meta_role is None:
+            await discord_context.send(
+                (f'Meta role `{meta_role}` not found.')
+            )
+            return
+        embed = meta_role_to_embed(existing_meta_role, discord_context)
+        await discord_context.send(embed=embed)
+    else:
+        all_guild_meta_roles = await sync_to_async(list)(
+            MetaRoleConfig.objects.prefetch_related('games').filter(
+                guild_id=discord_context.guild.id
+            ).all()
+        )
+        embed = meta_roles_to_embed(all_guild_meta_roles)
+        await discord_context.send(embed=embed)
 
 
 __all__ = ['meta_role']
