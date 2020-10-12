@@ -6,9 +6,10 @@ from discord import HTTPException, PermissionOverwrite
 from django.core.files import File
 from discord.ext.commands import Cog, command
 from discord.utils import get
-from playthrough.models import Channel, Game, GameConfig, User, Archive
+from playthrough.models import Channel, Game, GameConfig, MetaRoleConfig, User, Archive
 from rosetta.utils.exporter import export_channel
 from rosetta.config import PREFIX
+from rosetta.utils.role_expr import MetaRoleEvaluator
 
 if TYPE_CHECKING:
     from typing import Union, List
@@ -145,6 +146,47 @@ async def archive_channel(context: 'Context', channel: 'Channel'):
     )
     exported_channel_file.close()
     exported_channel_file_path.unlink()
+
+
+def get_meta_roles_to_grant(
+    context: 'Context',
+    game_config: GameConfig
+) -> 'List[MetaRoleConfig]':
+    """Get which MetaRoles to grant the user, given that they just finished a certain game.
+
+    :param context: The Discord Context
+    :param game_config: The Game the user just finished.
+    :return: The list of MetaRoles to add."""
+    related_meta_roles: List[MetaRoleConfig] = game_config.meta_roles.all()
+    meta_roles_to_add = []
+    user_role_ids = set([str(role.id) for role in context.author.roles])
+    user_role_ids.add(game_config.completion_role_id)
+    for meta_role in related_meta_roles:
+        related_games: List[GameConfig] = meta_role.games.all()
+        related_roles = [game.completion_role_id for game in related_games]
+        evaluator_input = {
+            role_id: role_id in user_role_ids for role_id in related_roles
+        }
+        evaluator = MetaRoleEvaluator(evaluator_input)
+        result = evaluator.evaluate(meta_role.expression)
+        if result:
+            meta_roles_to_add.append(meta_role)
+    return meta_roles_to_add
+
+
+async def grant_meta_roles(context: 'Context', game_config: GameConfig):
+    """Add meta roles the user is qualified for after they finished a certain game.
+
+    :param context: The Discord Context
+    :param game_config: The Game the user just finished."""
+    meta_roles_to_add: List[MetaRoleConfig] = await sync_to_async(
+        get_meta_roles_to_grant
+    )(context, game_config)
+    roles_to_add = []
+    for meta_role in meta_roles_to_add:
+        role_in_discord = get(context.guild.roles, id=int(meta_role.role_id))
+        roles_to_add.append(role_in_discord)
+    await context.message.author.add_roles(*roles_to_add)
 
 
 async def get_permissions(
@@ -463,6 +505,7 @@ class Playthrough(Cog):
             existing_channel.finished = True
             await sync_to_async(existing_channel.save)()
         await grant_completion_role(context, game_config)
+        await grant_meta_roles(context, game_config)
         await context.send((
             f'Hope you enjoyed {game_config.game}! '
             'If you had a channel it should be archived and you should now'
