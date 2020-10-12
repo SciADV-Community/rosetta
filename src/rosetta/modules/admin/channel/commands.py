@@ -14,7 +14,7 @@ from rosetta.utils.exporter import export_channel
 @click.argument('channel', type=str)
 @click.pass_context
 async def archive(context: Context, channel: str):
-    """Command to add a series"""
+    """Command to archive a channel"""
     discord_context = context.obj["discord_context"]
     channel_match = re.match(r'<#(\d+)>', channel)
     if not channel_match:

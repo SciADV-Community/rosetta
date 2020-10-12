@@ -299,6 +299,11 @@ class Playthrough(Cog):
                 f'Game {game} does not exist, or it is not configured in this guild.'
             ))
             return
+        if not game_config.game.playable:
+            await context.send((
+                f'You cannot create a channel for {game}.'
+            ))
+            return
         # Check for existing channel
         existing_channel = await get_existing_channel(context, game_config.game)
         if existing_channel:
@@ -356,6 +361,11 @@ class Playthrough(Cog):
         if not game_config:
             await context.send((
                 f'Game {game} does not exist, or it is not configured in this guild.'
+            ))
+            return
+        if not game_config.game.playable:
+            await context.send((
+                f'You cannot create a channel for {game}.'
             ))
             return
         # Check for existing channel / completion status
@@ -422,6 +432,11 @@ class Playthrough(Cog):
                 f'Game {game} does not exist, or it is not configured in this guild.'
             ))
             return
+        if not game_config.game.playable:
+            await context.send((
+                f'You cannot create a channel for {game}.'
+            ))
+            return
         existing_channel = await get_existing_channel(context, game_config.game)
         if existing_channel:
             await archive_channel(context, existing_channel)
@@ -440,6 +455,11 @@ class Playthrough(Cog):
         if not game_config:
             await context.send((
                 f'Game {game} does not exist, or it is not configured in this guild.'
+            ))
+            return
+        if not game_config.game.playable:
+            await context.send((
+                f'You cannot create a channel for {game}.'
             ))
             return
         # Check for existing channel / completion status
