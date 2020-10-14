@@ -14,10 +14,9 @@ def export_channel(channel_id: str) -> Path:
     client.containers.run(
         'tyrrrz/discordchatexporter:stable',
         f'export -c {channel_id} -o {channel_id}.html',
-        stdout=True,
         auto_remove=True,
         volumes={
-            str(ARCHIVE_ROOT.resolve()): {
+            'rosetta_archives': {
                 'bind': '/app/out', 'mode': 'rw'
             }
         },
@@ -25,7 +24,8 @@ def export_channel(channel_id: str) -> Path:
         environment={
             "DISCORD_TOKEN": TOKEN,
             "DISCORD_TOKEN_BOT": True
-        }
+        },
+        stdout=True,
     )
     return ARCHIVE_ROOT / f'{channel_id}.html'
 

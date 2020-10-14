@@ -1,0 +1,29 @@
+# Editors
+.vscode/
+.idea/
+# Coverage
+htmlcov/
+.coverage
+# Env
+.env
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+# Git
+.git/
+.gitignore
+README.md
+LICENSE
+# Tests
+setup.cfg
+# Python
+**/*.pyc
+**/__pycache__
+**/.sass-cache
+**/.pytest_cache/
+# OSX
+**/.DS_Store
+# Rosetta
+logs/
+archives/

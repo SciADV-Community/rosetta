@@ -104,8 +104,8 @@ venv.bak/
 .mypy_cache/
 
 # Rosetta Bot
-Logs/
-secrets.tar
+logs/
+archives/
 
 # Editors
 .vscode/

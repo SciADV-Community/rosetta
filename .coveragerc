@@ -1,5 +1,0 @@
-[run]
-omit = 
-    tests/*,
-    scripts.py,
-    src/rosetta/main.py

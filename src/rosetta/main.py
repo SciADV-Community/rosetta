@@ -7,7 +7,8 @@ from playthrough.models import Guild
 from rosetta import config, utils, checks
 
 # Logging
-logging.config.fileConfig('logging.conf', defaults={'logfilename': 'rosetta-log.log'})
+logging.config.fileConfig(
+    'logging.conf', defaults={'logfilename': config.LOG_ROOT / 'rosetta-log.log'})
 logger = logging.getLogger(__name__)
 
 # State

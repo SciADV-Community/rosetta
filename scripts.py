@@ -8,7 +8,13 @@ from pathlib import Path
 import click
 
 
-@click.command()
+@click.group()
+def scripts():
+    """Scripts group wrappper."""
+    pass
+
+
+@scripts.command()
 @click.option(
     "--prefix", "-p", prompt="Prefix to use for bot commands", type=str, default="$"
 )
@@ -25,24 +31,28 @@ def config(prefix, description, token):
     with dotenv.open(mode="w") as f:
         f.writelines(
             [
-                f"BOT_PREFIX={prefix}\n",
-                f"BOT_TOKEN={token}\n",
-                f"BOT_DESCRIPTION={description}\n",
+                f"ROSETTA_PREFIX={prefix}\n",
+                f"ROSETTA_TOKEN={token}\n",
+                f"ROSETTA_DESCRIPTION={description}\n",
             ]
         )
 
     click.secho("Config initalized successfully.", fg="green")
 
 
-@click.command()
+@scripts.command()
 def test():
     """Run tests."""
     subprocess.run("pytest")
 
 
-@click.command()
+@scripts.command()
 def start():
     """Run the bot."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'genki.settings')
     django.setup()
     runpy.run_module("rosetta.main", run_name="__main__")
+
+
+if __name__ == '__main__':
+    scripts()
