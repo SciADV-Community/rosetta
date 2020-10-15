@@ -8,7 +8,7 @@ before_install:
 install:
 - poetry install
 script:
-- poetry run flake8 rosetta
+- poetry run flake8 .
 - poetry run pytest --cov-report=xml:"$HOME/.cache/codecov/coverage.xml"
 before_deploy:
 - openssl aes-256-cbc -K $encrypted_db2095f63ba3_key -iv $encrypted_db2095f63ba3_iv
