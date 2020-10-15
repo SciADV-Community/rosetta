@@ -102,7 +102,7 @@ async def add(
         )
         return
     expression = _clean_expression(expression)
-    game_configs = await _validate_expression(expression)
+    game_configs = await _validate_expression(discord_context, expression)
     if game_configs is None:
         return
     if not create_role and role_id is None:
