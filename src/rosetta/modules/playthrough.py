@@ -313,7 +313,7 @@ class Playthrough(Cog):
                 f'Game {game} does not exist, or it is not configured in this guild.'
             ))
             return
-        if not game_config.game.playable:
+        if not game_config.playable:
             await context.send((
                 f'You cannot create a channel for {game}.'
             ))
@@ -378,7 +378,7 @@ class Playthrough(Cog):
                 f'Game {game} does not exist, or it is not configured in this guild.'
             ))
             return
-        if not game_config.game.playable:
+        if not game_config.playable:
             await context.send((
                 f'You cannot create a channel for {game}.'
             ))
@@ -448,7 +448,7 @@ class Playthrough(Cog):
                 f'Game {game} does not exist, or it is not configured in this guild.'
             ))
             return
-        if not game_config.game.playable:
+        if not game_config.playable:
             await context.send((
                 f'You cannot create a channel for {game}.'
             ))
@@ -456,7 +456,11 @@ class Playthrough(Cog):
         existing_channel = await get_existing_channel(context, game_config.game)
         if existing_channel:
             await archive_channel(context, existing_channel)
-            await context.send(f'And that\'s that. You dropped {game_config.game}.')
+            message = f'And that\'s that. You dropped {game_config.game}.'
+            try:
+                await context.send(message)
+            except Exception:
+                await context.message.author.send(message)
         else:
             await context.send((
                 'You don\'t seem to be playing the game (have a channel). '
@@ -473,7 +477,7 @@ class Playthrough(Cog):
                 f'Game {game} does not exist, or it is not configured in this guild.'
             ))
             return
-        if not game_config.game.playable:
+        if not game_config.playable:
             await context.send((
                 f'You cannot create a channel for {game}.'
             ))

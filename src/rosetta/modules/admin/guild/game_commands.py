@@ -43,12 +43,17 @@ def game(context: 'Context'):
 @click.option(
     '--role-id', '-r', type=str, help='the id of the completion role'
 )
+@click.option(
+    '--not-playable', '-np', is_flag=True,
+    help='whether or not users can create channels for this game'
+)
 @click.pass_context
 async def add(
     context: 'Context',
     game: str,
     create_role: bool = False,
-    role_id: str = None
+    role_id: str = None,
+    not_playable: bool = False,
 ):
     """Command to add a game to the guild."""
     discord_context = context.obj["discord_context"]
@@ -107,7 +112,8 @@ async def add(
     await sync_to_async(GameConfig.objects.create)(
         game=game_obj,
         guild_id=discord_context.guild.id,
-        completion_role_id=role_id
+        completion_role_id=role_id,
+        playable=not not_playable,
     )
     await discord_context.send(f'Added `{game_obj}` to the guild!')
 

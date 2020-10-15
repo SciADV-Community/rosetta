@@ -13,11 +13,11 @@ def export_channel(channel_id: str) -> Path:
     :return: The `pathlib.Path` of the archive."""
     client.containers.run(
         'tyrrrz/discordchatexporter:stable',
-        f'export -c {channel_id} -o {channel_id}.html',
+        f'export -c {channel_id} -o archives/{channel_id}.html',
         auto_remove=True,
         volumes={
             'rosetta_archives': {
-                'bind': '/app/out', 'mode': 'rw'
+                'bind': '/app/out/archives', 'mode': 'rw'
             }
         },
         user=f'{os.getuid()}:{os.getgid()}',
