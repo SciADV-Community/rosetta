@@ -17,3 +17,12 @@ volumes:
     archives:
     genki_media:
         external: true
+networks:
+    default:
+        driver: bridge
+        driver_opts: 
+            com.docker.network.bridge.name: rosetta
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.40.0.0/16
