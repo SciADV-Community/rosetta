@@ -24,7 +24,7 @@ RUN poetry install --no-dev --no-root --extras deployment
 RUN apk del --no-cache .build-deps
 
 RUN adduser -D user
-RUN addgroup -gid ${docker_gid} docker
+RUN addgroup -g ${docker_gid} docker
 RUN addgroup user docker
 
 RUN touch /var/run/docker.sock
