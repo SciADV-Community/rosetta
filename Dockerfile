@@ -6,8 +6,6 @@ ENV PYTHONUNBUFFERED=1\
     POETRY_VIRTUALENVS_IN_PROJECT=1\
     POETRY_NO_INTERACTION=1
 
-ARG docker_gid=998
-
 ENV ROSETTA_ROOT=/rosetta
 
 WORKDIR /rosetta
@@ -25,7 +23,7 @@ RUN apk del --no-cache .build-deps
 
 RUN adduser -D user
 RUN addgroup -gid ${docker_gid} docker
-RUN addgroup user 
+RUN addgroup user docker
 
 RUN touch /var/run/docker.sock
 RUN chown root:docker /var/run/docker.sock

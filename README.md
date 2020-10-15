@@ -1,4 +1,6 @@
-# rosetta
+# rosetta 
+
+[![Build Status](https://travis-ci.org/SciADV-Community/rosetta.svg?branch=master)](https://travis-ci.org/SciADV-Community/rosetta)
 
 Discord bot for managing channels in playthrough servers.
 
