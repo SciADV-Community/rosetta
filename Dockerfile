@@ -30,13 +30,13 @@ RUN addgroup user docker
 RUN touch /var/run/docker.sock
 RUN chown root:docker /var/run/docker.sock
 
-RUN mkdir logs
-RUN chown user:user logs
+RUN mkdir -p /rosetta/logs
+RUN chown user:user /rosetta/logs
 RUN chmod 755 logs
 
-RUN mkdir archives
-RUN chown user:user archives
-RUN chmod 777 archives
+RUN mkdir -p /rosetta/archives
+RUN chown user:user /rosetta/archives
+RUN chmod 755 archives
 
 RUN mkdir -p /genki/media
 RUN chown user:user /genki/media

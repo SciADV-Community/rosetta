@@ -543,11 +543,15 @@ class Playthrough(Cog):
             await sync_to_async(existing_channel.save)()
         await grant_completion_role(context, game_config)
         await grant_meta_roles(context, game_config)
-        await context.send((
+        message = (
             f'Hope you enjoyed {game_config.game}! '
             'If you had a channel it should be archived and you should now'
             ' be able to see global spoiler channels!'
-        ))
+        )
+        try:
+            await context.send(message)
+        except Exception:
+            await context.message.author.send(message)
 
     @command(pass_context=True)
     async def reset(self, context, *, game: str):
