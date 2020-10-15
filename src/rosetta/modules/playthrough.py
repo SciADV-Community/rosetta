@@ -217,6 +217,7 @@ async def get_permissions(
             send_messages=True,
             manage_messages=True,
             manage_channels=True,
+            manage_permissions=True,
         ),
         completion_role: PermissionOverwrite(
             read_messages=True,
