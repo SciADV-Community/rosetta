@@ -10,7 +10,7 @@ python = "^3.8"
 click = "^7.0"
 "discord.py" = "^1.4.1"
 docker = "^4.3.1"
-genki = {git = "https://231138d5c61b2fb9d7f6e5914759af74b690ef63@github.com/SciADV-Community/genki.git"}
+genki = {git = "https://github.com/SciADV-Community/genki.git"}
 psycopg2 = {version = "^2.8.6", optional = true}
 
 [tool.poetry.dev-dependencies]

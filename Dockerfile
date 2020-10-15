@@ -23,7 +23,10 @@ RUN apk del --no-cache .build-deps
 
 RUN adduser -D user
 RUN addgroup docker
-RUN addgroup user docker
+RUN addgroup user 
+
+RUN touch /var/run/docker.sock
+RUN chown root:docker /var/run/docker.sock
 
 RUN mkdir logs
 RUN chown user:user logs
