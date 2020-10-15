@@ -6,6 +6,8 @@ ENV PYTHONUNBUFFERED=1\
     POETRY_VIRTUALENVS_IN_PROJECT=1\
     POETRY_NO_INTERACTION=1
 
+ARG docker_gid=998
+
 ENV ROSETTA_ROOT=/rosetta
 
 WORKDIR /rosetta
@@ -22,7 +24,7 @@ RUN poetry install --no-dev --no-root --extras deployment
 RUN apk del --no-cache .build-deps
 
 RUN adduser -D user
-RUN addgroup docker
+RUN addgroup -gid ${docker_gid} docker
 RUN addgroup user 
 
 RUN touch /var/run/docker.sock
