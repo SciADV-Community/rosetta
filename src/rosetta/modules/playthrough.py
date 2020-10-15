@@ -278,12 +278,26 @@ async def create_channel(
         return None
 
 
+def get_instructions(game_config: GameConfig) -> str:
+    """Get the instructions message.
+
+    :game_config: The game to get a message for.
+    :return: The instructions message."""
+    return (
+        f'Welcome to your `{game_config.game}` playthrough room!\n'
+        f'When you have finished the game, type `{PREFIX}finished {game_config.game.name}` '
+        'and this channel will be archived. '
+        'If you wish to drop the game or stop your playthrough for a prolonged period of time '
+        f'please use `{PREFIX}drop {game_config.game.name}` and your channel will be archived. '
+        f' When you\'re back, you can use `{PREFIX}resume {game_config.game.name}` to resume playing!\n'
+        'Finally, do note that you have \'Manage Channel\' permissions if you wish to change the channel '
+        'name or who has permission to access it.\n'
+        'You can find pervious archives of your channel here: https://genki.rainm.io/'
+    )
+
+
 class Playthrough(Cog):
     logger = logging.getLogger(__name__)
-
-    instructions = (
-        "Test Instructions"
-    )
 
     def __init__(self, client):
         self.client = client
@@ -348,7 +362,8 @@ class Playthrough(Cog):
         # Create channel in the database
         await create_channel_in_db(context, game_config, channel.id)
         # Send instructions & pin
-        instructions_msg = await channel.send(self.instructions)
+        instructions = get_instructions(game_config)
+        instructions_msg = await channel.send(instructions)
         await channel.send(context.message.author.mention)
         await instructions_msg.pin()
         await context.send(f'Successfully created your channel: {channel.mention}')
@@ -414,7 +429,8 @@ class Playthrough(Cog):
         else:
             await sync_to_async(existing_channel.update_id)(channel.id)
         # Send instructions & pin
-        instructions_msg = await channel.send(self.instructions)
+        instructions = get_instructions(game_config)
+        instructions_msg = await channel.send(instructions)
         await channel.send(author.mention)
         await instructions_msg.pin()
         await context.send(
@@ -500,7 +516,8 @@ class Playthrough(Cog):
         # Update channel in the database
         await sync_to_async(existing_channel.update_id)(channel.id)
         # Send instructions & pin
-        instructions_msg = await channel.send(self.instructions)
+        instructions = get_instructions(game_config)
+        instructions_msg = await channel.send(instructions)
         await channel.send(author.mention)
         await instructions_msg.pin()
         await context.send(
@@ -508,7 +525,7 @@ class Playthrough(Cog):
         )
 
     @command(pass_context=True)
-    async def finish(self, context, *, game: str):
+    async def finished(self, context, *, game: str):
         """Finish playing a game.
         Grants completion role & archives any playthrough channel."""
         await context.trigger_typing()
