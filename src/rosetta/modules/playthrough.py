@@ -55,9 +55,6 @@ async def get_game_config(context: 'Context', game: str) -> 'Union[GameConfig,No
         context.guild.id
     )
     if game_config is None:
-        await context.send(
-            f'Game {game} either does not exist or is not available in this Guild.'
-        )
         return None
     return game_config
 

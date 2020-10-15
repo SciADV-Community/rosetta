@@ -211,7 +211,7 @@ async def update(
             return
     if expression is not None:
         expression = _clean_expression(expression)
-        new_game_configs = await _validate_expression(expression)
+        new_game_configs = await _validate_expression(discord_context, expression)
         if not new_game_configs:
             return
         existing_meta_role.expression = expression
