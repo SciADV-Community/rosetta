@@ -2,18 +2,50 @@ import re
 
 from asgiref.sync import sync_to_async
 import click
-from click import Context
+from click import Context as ClickContext
 from django.core.files import File
 from discord.utils import get
+from discord.ext.commands import Context as DiscordContext
 
 from playthrough.models import Archive, Channel
+from rosetta.utils import ask
 from rosetta.utils.exporter import export_channel
+
+
+async def archive_channel(context: DiscordContext, channel_id: str):
+    """Archives a certain channel.
+
+    :param context: The Discord Context.
+    :param channel_id: The ID of the channel to archive."""
+    channel_obj = await sync_to_async(
+        Channel.objects.filter(id=int(channel_id)).first
+    )()
+    if channel_obj is None:
+        await context.send(
+            f'<#{channel_id}> is seemingly not a playthrough channel.'
+        )
+        return
+    await context.send(f'Archiving <#{channel_id}>...')
+    exported_channel_file_path = export_channel(channel_id)
+    exported_channel_file = File(
+        file=open(exported_channel_file_path),
+        name=exported_channel_file_path.name
+    )
+    channel_in_guild = get(context.guild.channels, id=int(channel_id))
+    await channel_in_guild.delete()
+    await sync_to_async(Archive.objects.create)(
+        channel=channel_obj,
+        file=exported_channel_file
+    )
+    exported_channel_file.close()
+    exported_channel_file_path.unlink()
+    await context.send('Archived the channel.')
 
 
 @click.command()
 @click.argument('channel', type=str)
 @click.pass_context
-async def archive(context: Context, channel: str):
+async def archive(context: ClickContext, channel: str):
     """Command to archive a channel"""
     discord_context = context.obj["discord_context"]
     channel_match = re.match(r'<#(\d+)>', channel)
@@ -26,31 +58,50 @@ async def archive(context: Context, channel: str):
     channel_id = channel_match.group(1)
 
     async with discord_context.typing():
-        channel_obj = await sync_to_async(
-            Channel.objects.filter(id=int(channel_id)).first
-        )()
-        if channel_obj is None:
-            await discord_context.send(
-                f'{channel} is seemingly not a playthrough channel.'
-            )
-            return
+        await archive_channel(channel_id)
 
-        exported_channel_file_path = export_channel(channel_id)
-        exported_channel_file = File(
-            file=open(exported_channel_file_path),
-            name=exported_channel_file_path.name
+
+@click.command()
+@click.argument('category-id', type=int)
+@click.option('--yes', '-y', is_flag=True, help='skips the confirmation prompt')
+@click.pass_context
+async def archive_category(context: ClickContext, category_id: int, yes: bool = False):
+    """Command to archive a category"""
+    discord_context = context.obj["discord_context"]
+    category_in_guild = get(discord_context.guild.categories, id=category_id)
+    if not category_in_guild:
+        await discord_context.send(f'Category with id {category_id} not found.')
+        return
+    category_channels = category_in_guild.channels.text_channels
+    await discord_context.send(
+        f'Found {len(category_channels)} channels in {category_in_guild.name} to archive.'
+    )
+    if not yes:
+        # TODO Put this thing into its own utility function for reuse
+        message = await ask(
+            discord_context,
+            'Continue? (Y/N)',
+            lambda m: m.content.lower() in ['y', 'n', 'yes', 'no']
         )
-        channel_in_guild = get(discord_context.guild.channels, id=int(channel_id))
-        await channel_in_guild.delete()
-        await sync_to_async(Archive.objects.create)(
-            channel=channel_obj,
-            file=exported_channel_file
-        )
-        exported_channel_file.close()
-        exported_channel_file_path.unlink()
-        await discord_context.send('Archived the channel.')
+        if message is None:
+            await discord_context.send('You forgot to reply! Will take that as a no.')
+        else:
+            if message.content.lower() in ['y', 'yes']:
+                yes = True
+            else:
+                await discord_context.send('Alright then!')
+    if yes:
+        for i, channel in enumerate(category_channels):
+            await discord_context.send(f'Archiving {channel.name} ({i}/{len(category_channels)})')
+            try:
+                await archive_channel(channel.id)
+            except Exception as e:
+                await discord_context.send(f'Failed to archive {channel.name}. Skipping...')
+                await discord_context.send(f'```{e}```')
+        await discord_context.send(f'Finished archiving category {category_id}.')
 
 
 __all__ = [
     'archive',
+    'archive_category',
 ]

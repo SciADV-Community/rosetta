@@ -1,6 +1,6 @@
 import click
 
-from .commands import archive
+from .commands import archive, archive_category
 
 
 @click.group()
@@ -11,6 +11,7 @@ def channel(context):
 
 
 channel.add_command(archive)
+channel.add_command(archive_category)
 
 
 __all__ = [
