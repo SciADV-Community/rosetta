@@ -47,8 +47,9 @@ async def archive_channel(context: DiscordContext, channel_id: str, finished: bo
 
 @click.command()
 @click.argument('channel', type=str)
+@click.option('--finished', '-f', is_flag=True, help='Whether or not the channels here are finished')
 @click.pass_context
-async def archive(context: ClickContext, channel: str):
+async def archive(context: ClickContext, channel: str, finished: bool = False):
     """Command to archive a channel"""
     discord_context = context.obj["discord_context"]
     channel_match = re.match(r'<#(\d+)>', channel)
@@ -61,7 +62,7 @@ async def archive(context: ClickContext, channel: str):
     channel_id = channel_match.group(1)
 
     async with discord_context.typing():
-        await archive_channel(channel_id)
+        await archive_channel(context, channel_id, finished)
 
 
 @click.command()
