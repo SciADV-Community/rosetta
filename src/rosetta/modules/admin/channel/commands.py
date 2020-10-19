@@ -12,7 +12,7 @@ from rosetta.utils import ask
 from rosetta.utils.exporter import export_channel
 
 
-async def archive_channel(context: DiscordContext, channel_id: str):
+async def archive_channel(context: DiscordContext, channel_id: str, finished: bool = False):
     """Archives a certain channel.
 
     :param context: The Discord Context.
@@ -39,6 +39,9 @@ async def archive_channel(context: DiscordContext, channel_id: str):
     )
     exported_channel_file.close()
     exported_channel_file_path.unlink()
+    if finished:
+        channel_obj.finished = finished
+        await sync_to_async(channel_obj.save)()
     await context.send('Archived the channel.')
 
 
@@ -63,9 +66,12 @@ async def archive(context: ClickContext, channel: str):
 
 @click.command()
 @click.argument('category-id', type=int)
+@click.option('--finished', '-f', is_flag=True, help='Whether or not the channels here are finished')
 @click.option('--yes', '-y', is_flag=True, help='skips the confirmation prompt')
 @click.pass_context
-async def archive_category(context: ClickContext, category_id: int, yes: bool = False):
+async def archive_category(
+    context: ClickContext, category_id: int, finished: bool = False, yes: bool = False
+):
     """Command to archive a category"""
     discord_context = context.obj["discord_context"]
     category_in_guild = get(discord_context.guild.categories, id=category_id)
@@ -94,7 +100,7 @@ async def archive_category(context: ClickContext, category_id: int, yes: bool = 
         for i, channel in enumerate(category_channels):
             await discord_context.send(f'Archiving {channel.name} ({i}/{len(category_channels)})')
             try:
-                await archive_channel(channel.id)
+                await archive_channel(channel.id, finished)
             except Exception as e:
                 await discord_context.send(f'Failed to archive {channel.name}. Skipping...')
                 await discord_context.send(f'```{e}```')
