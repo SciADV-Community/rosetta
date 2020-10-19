@@ -100,7 +100,7 @@ async def archive_category(
         for i, channel in enumerate(category_channels):
             await discord_context.send(f'Archiving {channel.name} ({i}/{len(category_channels)})')
             try:
-                await archive_channel(channel.id, finished)
+                await archive_channel(discord_context, channel.id, finished)
             except Exception as e:
                 await discord_context.send(f'Failed to archive {channel.name}. Skipping...')
                 await discord_context.send(f'```{e}```')
