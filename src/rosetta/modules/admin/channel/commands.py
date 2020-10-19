@@ -78,7 +78,7 @@ async def archive_category(
     if not category_in_guild:
         await discord_context.send(f'Category with id {category_id} not found.')
         return
-    category_channels = category_in_guild.channels.text_channels
+    category_channels = category_in_guild.text_channels
     await discord_context.send(
         f'Found {len(category_channels)} channels in {category_in_guild.name} to archive.'
     )
