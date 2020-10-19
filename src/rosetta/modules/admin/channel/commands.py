@@ -62,7 +62,7 @@ async def archive(context: ClickContext, channel: str, finished: bool = False):
     channel_id = channel_match.group(1)
 
     async with discord_context.typing():
-        await archive_channel(context, channel_id, finished)
+        await archive_channel(discord_context, channel_id, finished)
 
 
 @click.command()
