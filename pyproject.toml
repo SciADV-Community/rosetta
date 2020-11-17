@@ -20,9 +20,6 @@ black = "^19.10b0"
 flake8 = "^3.8.1"
 rope = "^0.17.0"
 
-[tool.poetry.extras]
-deployment = ["psycopg2"]
-
 [tool.poetry.scripts]
 config = "scripts:config"
 start = "scripts:start"
