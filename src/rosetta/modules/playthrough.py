@@ -196,7 +196,7 @@ async def get_permissions(
     completion_role = get_game_completion_role(context, game_config)
     if completion_role is None:
         await context.send((
-            f'There seems to be a misconfiguration for {game_config.game}'
+            f'There seems to be a misconfiguration for `{game_config.game}`'
             ' on the server. Please contact an admin.'
         ))
         return None
@@ -308,12 +308,12 @@ class Playthrough(Cog):
         game_config = await get_game_config(context, game)
         if not game_config:
             await context.send((
-                f'Game {game} does not exist, or it is not configured in this guild.'
+                f'Game does not exist, or it is not configured for this server.'
             ))
             return
         if not game_config.playable:
             await context.send((
-                f'You cannot create a channel for {game}.'
+                f'You cannot create a channel for `{game_config.game}`.'
             ))
             return
         # Check for existing channel
@@ -340,7 +340,7 @@ class Playthrough(Cog):
         completion_role = get_game_completion_role(context, game_config)
         if completion_role in context.message.author.roles:
             await context.send((
-                f'Looks like you have already played {game_config.game}. '
+                f'Looks like you have already played `{game_config.game}`. '
                 f'Try `{PREFIX}replay {game}`.'
             ))
             return
@@ -373,12 +373,12 @@ class Playthrough(Cog):
         game_config = await get_game_config(context, game)
         if not game_config:
             await context.send((
-                f'Game {game} does not exist, or it is not configured in this guild.'
+                f'Game does not exist, or it is not configured for this server.'
             ))
             return
         if not game_config.playable:
             await context.send((
-                f'You cannot create a channel for {game}.'
+                f'You cannot create a channel for `{game_config.game}`.'
             ))
             return
         # Check for existing channel / completion status
@@ -391,18 +391,18 @@ class Playthrough(Cog):
             channel_in_guild = None
         if existing_channel is None and completion_role not in author.roles:
             await context.send((
-                f'Doesn\'t seem like you have played {game_config.game} yet. '
+                f'Doesn\'t seem like you have played `{game_config.game}` yet. '
                 f'Try `{PREFIX}play {game}`.'
             ))
             return
         elif existing_channel is not None and not existing_channel.finished:
             await context.send((
-                f'Doesn\'t seem like you have finished {game_config.game} yet.'
+                f'Doesn\'t seem like you have finished `{game_config.game}` yet.'
             ))
             return
         elif channel_in_guild is not None:
             await context.send((
-                f'Seems like you still have a replay channel for {game_config.game} '
+                f'Seems like you still have a replay channel for `{game_config.game}` '
                 'in this server.'
             ))
             return
@@ -443,18 +443,18 @@ class Playthrough(Cog):
         game_config = await get_game_config(context, game)
         if not game_config:
             await context.send((
-                f'Game {game} does not exist, or it is not configured in this guild.'
+                f'Game does not exist, or it is not configured for this server.'
             ))
             return
         if not game_config.playable:
             await context.send((
-                f'You cannot create a channel for {game}.'
+                f'You cannot create a channel for `{game_config.game}`.'
             ))
             return
         existing_channel = await get_existing_channel(context, game_config.game)
         if existing_channel:
             await archive_channel(context, existing_channel)
-            message = f'And that\'s that. You dropped {game_config.game}.'
+            message = f'And that\'s that. You dropped `{game_config.game}`.'
             try:
                 await context.send(message)
             except Exception:
@@ -472,12 +472,12 @@ class Playthrough(Cog):
         game_config = await get_game_config(context, game)
         if not game_config:
             await context.send((
-                f'Game {game} does not exist, or it is not configured in this guild.'
+                f'Game does not exist, or it is not configured for this server.'
             ))
             return
         if not game_config.playable:
             await context.send((
-                f'You cannot create a channel for {game}.'
+                f'You cannot create a channel for `{game_config.game}`.'
             ))
             return
         # Check for existing channel / completion status
@@ -486,20 +486,20 @@ class Playthrough(Cog):
         channel_in_guild = get(context.guild.channels, id=int(existing_channel.id))
         if existing_channel is None:
             await context.send((
-                f'Doesn\'t seem like you have played {game_config.game} yet. '
+                f'Doesn\'t seem like you have played `{game_config.game}` yet. '
                 f'Try `{PREFIX}play {game}`.'
             ))
             return
         elif existing_channel is not None and existing_channel.finished:
             await context.send((
-                f'Seems like you have already finished {game_config.game}. '
+                f'Seems like you have already finished `{game_config.game}`. '
                 f'Try `{PREFIX}replay {game}`.'
             ))
             return
         elif channel_in_guild is not None:
             await context.send((
                 'Seems like you still have a playthrough channel '
-                f'for {game_config.game} in this server.'
+                f'for `{game_config.game}` in this server.'
             ))
             return
         # Channel name
@@ -535,7 +535,7 @@ class Playthrough(Cog):
         game_config = await get_game_config(context, game)
         if not game_config:
             await context.send((
-                f'Game {game} does not exist, or it is not configured in this guild.'
+                f'Game does not exist, or it is not configured for this server.'
             ))
             return
         existing_channel = await get_existing_channel(context, game_config.game)
@@ -563,12 +563,12 @@ class Playthrough(Cog):
         game_config = await get_game_config(context, game)
         if not game_config:
             await context.send((
-                f'Game {game} does not exist, or it is not configured in this guild.'
+                f'Game does not exist, or it is not configured for this server.'
             ))
             return
         await remove_completion_role(context, game_config)
         await context.send((
-            f'Your progress on {game_config.game} has been reset. '
+            f'Your progress on `{game_config.game}` has been reset. '
             'The completion role is removed!'
         ))
         pass
