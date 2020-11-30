@@ -2,11 +2,14 @@
 """Main module to run the bot."""
 import logging
 from asgiref.sync import sync_to_async
+from os import path, mkdir
 from discord.ext import commands
 from playthrough.models import Guild
 from rosetta import config, utils, checks
 
 # Logging
+if not path.isdir(config.LOG_ROOT):
+    mkdir(config.LOG_ROOT )
 logging.config.fileConfig(
     'logging.conf', defaults={'logfilename': config.LOG_ROOT / 'rosetta-log.log'})
 logger = logging.getLogger(__name__)
