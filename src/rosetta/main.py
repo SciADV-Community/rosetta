@@ -42,7 +42,7 @@ async def load(context, module: str = None):
         if await utils.load_module(client, module, context):
             loaded_modules.append(module)
     else:
-        await context.send(f"Module {module} already loaded.")
+        await context.send(f"Module `{module}` already loaded.")
 
 
 # Unloading a module
@@ -56,7 +56,7 @@ async def unload(context, module: str = None):
         if await utils.unload_module(client, module, context):
             loaded_modules.remove(module)
     else:
-        await context.send(f"Module {module} not loaded.")
+        await context.send(f"Module `{module}` not loaded.")
 
 
 # Reloading a module
@@ -69,9 +69,9 @@ async def reload(context, module: str = None):
             if await utils.unload_module(
                 client, module, context
             ) and await utils.load_module(client, module, context):
-                await context.send(f"{module} reload complete.")
+                await context.send(f"`{module}` reload complete.")
         else:
-            await context.send(f"Module {module} not loaded.")
+            await context.send(f"Module `{module}` not loaded.")
     else:
         for module in loaded_modules:
             unloaded = await utils.unload_module(client, module, context)

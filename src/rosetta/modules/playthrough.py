@@ -308,7 +308,7 @@ class Playthrough(Cog):
         game_config = await get_game_config(context, game)
         if not game_config:
             await context.send((
-                f'Game does not exist, or it is not configured for this server.'
+                'Game does not exist, or it is not configured for this server.'
             ))
             return
         if not game_config.playable:
@@ -373,7 +373,7 @@ class Playthrough(Cog):
         game_config = await get_game_config(context, game)
         if not game_config:
             await context.send((
-                f'Game does not exist, or it is not configured for this server.'
+                'Game does not exist, or it is not configured for this server.'
             ))
             return
         if not game_config.playable:
@@ -443,7 +443,7 @@ class Playthrough(Cog):
         game_config = await get_game_config(context, game)
         if not game_config:
             await context.send((
-                f'Game does not exist, or it is not configured for this server.'
+                'Game does not exist, or it is not configured for this server.'
             ))
             return
         if not game_config.playable:
@@ -472,7 +472,7 @@ class Playthrough(Cog):
         game_config = await get_game_config(context, game)
         if not game_config:
             await context.send((
-                f'Game does not exist, or it is not configured for this server.'
+                'Game does not exist, or it is not configured for this server.'
             ))
             return
         if not game_config.playable:
@@ -535,7 +535,7 @@ class Playthrough(Cog):
         game_config = await get_game_config(context, game)
         if not game_config:
             await context.send((
-                f'Game does not exist, or it is not configured for this server.'
+                'Game does not exist, or it is not configured for this server.'
             ))
             return
         existing_channel = await get_existing_channel(context, game_config.game)
@@ -563,7 +563,7 @@ class Playthrough(Cog):
         game_config = await get_game_config(context, game)
         if not game_config:
             await context.send((
-                f'Game does not exist, or it is not configured for this server.'
+                'Game does not exist, or it is not configured for this server.'
             ))
             return
         await remove_completion_role(context, game_config)
