@@ -1,4 +1,5 @@
 import re
+import logging
 
 from asgiref.sync import sync_to_async
 import click
@@ -10,6 +11,9 @@ from discord.ext.commands import Context as DiscordContext
 from playthrough.models import Archive, Channel
 from rosetta.utils import ask
 from rosetta.utils.exporter import export_channel
+
+
+logger = logging.getLogger(__name__)
 
 
 async def archive_channel(context: DiscordContext, channel_id: str, finished: bool = False):
@@ -26,11 +30,20 @@ async def archive_channel(context: DiscordContext, channel_id: str, finished: bo
         )
         return
     await context.send(f'Archiving <#{channel_id}>...')
-    exported_channel_file_path = export_channel(channel_id)
-    exported_channel_file = File(
-        file=open(exported_channel_file_path),
-        name=exported_channel_file_path.name
-    )
+    try:
+        exported_channel_file_path = export_channel(channel_id)
+        exported_channel_file = File(
+            file=open(exported_channel_file_path),
+            name=exported_channel_file_path.name
+        )
+    except Exception as e:
+        logger.error(e)
+        await context.send((
+            "Error occurred when archiving the channel, "
+            "please check logs for more information. "
+            "\nThe channel has not been deleted."
+        ))
+        return
     channel_in_guild = get(context.guild.channels, id=int(channel_id))
     await channel_in_guild.delete()
     await sync_to_async(Archive.objects.create)(
