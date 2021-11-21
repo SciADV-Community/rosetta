@@ -7,22 +7,20 @@ services:
         image: rosetta
         build:
             context: .
-        env_file:
-            - .env
+            args:
+                docker_gid: ${DOCKER_GID:-998}
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
             - archives:/rosetta/archives
             - genki_media:/genki/media
+        env_file:
+          - .env
+        networks:
+          - genki_frau
 volumes:
     archives:
     genki_media:
         external: true
 networks:
-    default:
-        driver: bridge
-        driver_opts: 
-            com.docker.network.bridge.name: rosetta
-        ipam:
-            driver: default
-            config:
-                - subnet: 172.40.0.0/16
+    genki_frau:
+        external: true
