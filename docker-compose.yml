@@ -8,11 +8,13 @@ services:
         build:
             context: .
             args:
-                docker_gid: ${DOCKER_GID:998}
+                docker_gid: ${DOCKER_GID:-998}
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
             - archives:/rosetta/archives
             - genki_media:/genki/media
+        env_file:
+          - .env
         networks:
           - genki_frau
 volumes:
