@@ -23,13 +23,13 @@ async def load_module(client, module, context=None):  # pragma: no cover
         module = f"rosetta.{module}"
         client.load_extension(module)
         logger.info("Module %s was successfully loaded.", module)
-        await send_message(context, f"{module} was successfully loaded.")
+        await send_message(context, f"`{module}` was successfully loaded.")
         return True
     except (AttributeError, ImportError) as e:
         logger.error("Failed to load module %s: %s", module, e)
         await send_message(
             context,
-            f"{module} could not be loaded due to an error. Please check the logs.",
+            f"`{module}` could not be loaded due to an error. Please check the logs.",
         )
         return False
 
@@ -40,13 +40,13 @@ async def unload_module(client, module, context=None):  # pragma: no cover
         module = f"rosetta.{module}"
         client.unload_extension(module)
         logger.info("Module %s was successfully unloaded.", module)
-        await send_message(context, f"{module} was successfully unloaded.")
+        await send_message(context, f"`{module}` was successfully unloaded.")
         return True
     except (AttributeError, ImportError) as e:
         logger.error("Failed to unload module %s: %s", module, e)
         await send_message(
             context,
-            f"{module} could not be unloaded due to an error. Please check the logs.",
+            f"`{module}` could not be unloaded due to an error. Please check the logs.",
         )
         return False
 
