@@ -1,4 +1,4 @@
-# rosetta 
+# rosetta
 
 ![Build Status](https://github.com/SciADV-Community/rosetta/workflows/CI%20%26%20CD/badge.svg)
 
@@ -28,12 +28,12 @@ Run `export $(cat .env | xargs) && poetry run start`
 You might need to specify the `docker_gid` arg to the group id of the `docker` group on the **host** environment such that the container can use the passed in `docker.sock` socket to run the chat exporter. You may specify it in the `docker-compose.yml` file like so:
 
 ```yml
-...
+
+---
 build:
     context: .
     args:
         docker_gid: 1001
-...
 ```
 
 ## Running tests
