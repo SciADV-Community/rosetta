@@ -44,17 +44,26 @@ async def archive_channel(context: DiscordContext, channel_id: str, finished: bo
             "\nThe channel has not been deleted."
         ))
         return
-    channel_in_guild = get(context.guild.channels, id=int(channel_id))
-    await channel_in_guild.delete()
-    await sync_to_async(Archive.objects.create)(
-        channel=channel_obj,
-        file=exported_channel_file
-    )
-    exported_channel_file.close()
-    exported_channel_file_path.unlink()
+    try:
+        await sync_to_async(Archive.objects.create)(
+            channel=channel_obj,
+            file=exported_channel_file
+        )
+        exported_channel_file.close()
+        exported_channel_file_path.unlink()
+    except Exception as e:
+        logger.error(e)
+        await context.send((
+            "Error occurred when trying to upload the archive for the channel, "
+            "please check logs for more information. "
+            "\nThe channel has not been deleted."
+        ))
+        return
     if finished:
         channel_obj.finished = finished
         await sync_to_async(channel_obj.save)()
+    channel_in_guild = get(context.guild.channels, id=int(channel_id))
+    await channel_in_guild.delete()
     await context.send('Archived the channel.')
 
 
