@@ -51,6 +51,7 @@ jobs:
           username: ${{secrets.RELEASE_SERVER_USER}}
           password: ${{secrets.RELEASE_SERVER_PASSWORD}}
           script: >-
+            export DOCKER_ID=`cut -d: -f3 < <(getent group docker)` &&
             cd /bot/playthrough-bot/rosetta &&
             docker-compose down &&
             git pull &&
