@@ -16,7 +16,7 @@ from .utils.roles import (
     remove_completion_role,
 )
 
-from .ui import gen_button_view
+from .ui import GameButton
 
 
 class Playthrough(discord.Cog):
@@ -52,15 +52,6 @@ class Playthrough(discord.Cog):
     @tasks.loop(minutes=5)
     async def cache(self):
         self.guild_games = await get_all_games_per_guild()
-
-    @discord.slash_command()
-    async def create_button(self, ctx: discord.ApplicationContext):
-        view = await gen_button_view(self.client, ctx.guild.id)
-
-        await ctx.respond(
-            "Please use one of the following buttons to do stuff:",
-            view=view,
-        )
 
     @discord.slash_command(description="Drop a game. Closes playthrough channel.")
     async def drop(

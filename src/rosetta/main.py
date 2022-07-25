@@ -7,7 +7,7 @@ from asgiref.sync import sync_to_async
 from playthrough.models import Guild
 
 from rosetta import config
-from rosetta.cogs.playthrough.ui import gen_button_view
+from rosetta.cogs.playthrough.ui import GameButton
 
 # Logging
 if not config.LOG_ROOT.exists():
@@ -37,7 +37,7 @@ class Rosetta(discord.Bot):
             logger.info(guild.name)
 
             # Persistent UI
-            playthrough_button_view = await gen_button_view(self, guild.id)
+            playthrough_button_view = await GameButton.gen_button_view(self, guild.id)
             self.add_view(playthrough_button_view)
 
     async def on_guild_join(self, guild: discord.Guild):
@@ -59,10 +59,6 @@ class Rosetta(discord.Bot):
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
-# intents.guilds = True
-# intents.guild_messages = True
-# intents.emojis = True
-# intents.message_content = True
 
 # Running the client
 client = Rosetta(

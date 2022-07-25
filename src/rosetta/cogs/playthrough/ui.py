@@ -91,6 +91,9 @@ class GameButton(discord.ui.Button):
         meta_role_id = await MetaRoleSelect.ask_for_meta_role(
             interaction, self.game_config
         )
+        if type(meta_role_id) is bool and meta_role_id is False:
+            return
+
         permissions = await get_permissions(interaction, self.game_config, meta_role_id)
 
         # Try creating the channel on discord
@@ -124,8 +127,27 @@ class GameButton(discord.ui.Button):
             await interaction.edit_original_message(
                 content=f"Successfully created your channel: {channel.mention}, have fun!",
                 view=None,
-                delete_after=8,
             )
+            await interaction.delete_original_message(delay=8)
+
+    @classmethod
+    async def gen_button_view(cls, client, guild_id):
+        game_configs = await get_playable_games(guild_id)
+
+        view = discord.ui.View(timeout=None)
+
+        for i, game_config in enumerate(game_configs):
+            emoji = client.get_emoji(int(game_config.emoji))
+            game_button = cls(
+                game_config=game_config,
+                label=game_config.game.name,
+                custom_id=game_config.game.slug,
+                emoji=emoji,
+                row=i // 5,
+            )
+            view.add_item(game_button)
+
+        return view
 
 
 class MetaRoleSelect(discord.ui.View):
@@ -138,15 +160,16 @@ class MetaRoleSelect(discord.ui.View):
 
     def __init__(self, *items, meta_roles: list[MetaRoleConfig], timeout=20):
         super().__init__(*items, timeout=timeout)
-        options = options = [
+        options = options = [discord.SelectOption(label="None", value="None")] + [
             discord.SelectOption(label=meta_role.name, value=meta_role.role_id)
             for meta_role in meta_roles
-        ] + [discord.SelectOption(label="None", value="None")]
+        ]
         self.add_item(self._Select(options=options))
 
     async def on_timeout(self) -> None:
         self.children[0].disabled = True
         await self.interaction.edit_original_message(view=self)
+        self.value = False
 
     async def picked_option(self, meta_role_id: int):
         self.value = meta_role_id
@@ -162,7 +185,6 @@ class MetaRoleSelect(discord.ui.View):
     ):
         meta_roles = await get_meta_roles(game_config)
         if len(meta_roles) > 0:
-
             select = cls(meta_roles=meta_roles)
             select.interaction = await ctx.response.send_message(
                 "Would you like to lock the channel behind a Meta-Role? If not or unsure, select `None`.",
@@ -174,22 +196,3 @@ class MetaRoleSelect(discord.ui.View):
             return select.value
         else:
             return None
-
-
-async def gen_button_view(client, guild_id):
-    game_configs = await get_playable_games(guild_id)
-
-    view = discord.ui.View(timeout=None)
-
-    for i, game_config in enumerate(game_configs):
-        emoji = client.get_emoji(int(game_config.emoji))
-        game_button = GameButton(
-            game_config=game_config,
-            label=game_config.game.name,
-            custom_id=game_config.game.slug,
-            emoji=emoji,
-            row=i // 5,
-        )
-        view.add_item(game_button)
-
-    return view

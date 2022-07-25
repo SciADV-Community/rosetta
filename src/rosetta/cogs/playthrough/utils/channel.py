@@ -30,22 +30,34 @@ async def archive_channel(ctx: Interaction, channel: Channel):
             file=open(exported_channel_file_path), name=exported_channel_file_path.name
         )
     except Exception as e:
-        print(e)
         logger.error(e)
-        await ctx.response.send_message(
+        await ctx.followup.send(
             (
                 "Error occurred when archiving the channel, "
+                "please check logs for more information. "
+                "\nThe channel has not been deleted."
+            ),
+            ephemeral=True,
+        )
+        return False
+    try:
+        await sync_to_async(Archive.objects.create)(
+            channel=channel, file=exported_channel_file
+        )
+        exported_channel_file.close()
+        exported_channel_file_path.unlink()
+    except Exception as e:
+        logger.error(e)
+        await ctx.followup.send(
+            (
+                "Error occurred when uploading the channel archive, "
                 "please check logs for more information. "
                 "\nThe channel has not been deleted."
             )
         )
         return False
+
     await channel_in_guild.delete()
-    await sync_to_async(Archive.objects.create)(
-        channel=channel, file=exported_channel_file
-    )
-    exported_channel_file.close()
-    exported_channel_file_path.unlink()
     return True
 
 
