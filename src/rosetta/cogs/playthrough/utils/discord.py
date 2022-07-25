@@ -1,9 +1,9 @@
 from typing import List, Union
 
-from playthrough.models import GameConfig
-
-from discord import CategoryChannel, Role, Interaction, TextChannel
+from discord import CategoryChannel, Interaction, Role, TextChannel
 from discord.utils import get
+
+from playthrough.models import GameConfig
 
 
 def get_game_completion_role(

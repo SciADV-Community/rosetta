@@ -3,11 +3,10 @@
 import logging
 
 import discord
-from asgiref.sync import sync_to_async
-from playthrough.models import Guild
 
 from rosetta import config
 from rosetta.cogs.playthrough.ui import GameButton
+from rosetta.utils.db import get_or_create_guild
 
 # Logging
 if not config.LOG_ROOT.exists():
@@ -20,9 +19,15 @@ logger = logging.getLogger(__name__)
 
 
 class Rosetta(discord.Bot):
+    """The main Bot class for Rosetta!"""
+
     COGS = ["admin", "playthrough"]
 
     def __init__(self, description=None, *args, **options):
+        """The main Bot class for Rosetta!
+
+        :param description: The bot description.
+        """
         super().__init__(description, *args, **options)
 
         # Load cogs
@@ -43,14 +48,13 @@ class Rosetta(discord.Bot):
     async def on_guild_join(self, guild: discord.Guild):
         """Handle setting up a new guild."""
         logger.info(f"Joined new guild: {guild.name} ({guild.id})")
-        res = await sync_to_async(Guild.objects.get_or_create)(id=str(guild.id))
-        res[0].name = guild.name
-        await sync_to_async(res[0].save)()
+        res = await get_or_create_guild(guild)
         logger.info(f"Registered Guild in the database: {res[0]} (created={res[1]})")
 
     async def on_application_command_error(
         self, ctx: discord.ApplicationContext, error: discord.DiscordException
     ):
+        """Handle errors globally."""
         logger.error("Error occurred for command %s: %s", ctx.command, error)
 
 

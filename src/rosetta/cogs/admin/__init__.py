@@ -4,7 +4,7 @@ import discord
 from asgiref.sync import sync_to_async
 from discord.ext.commands import Cog
 from playthrough.models import Channel
-from rosetta import checks
+from rosetta.utils import checks
 from rosetta.cogs.admin.ui import ConfirmView
 from rosetta.cogs.playthrough.ui import GameButton
 from rosetta.cogs.playthrough.utils.channel import archive_channel

@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 """Commandline utility to inetteract with the bot."""
 import os
-import django
-import subprocess
 import runpy
+import subprocess
 from pathlib import Path
+
 import click
+import django
 
 
 @click.group()
@@ -49,10 +50,10 @@ def test():
 @scripts.command()
 def start():
     """Run the bot."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'genki.settings')
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "genki.settings")
     django.setup()
     runpy.run_module("rosetta.main", run_name="__main__")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     scripts()

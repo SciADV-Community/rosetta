@@ -1,21 +1,19 @@
 import logging
-from typing import TYPE_CHECKING
 
-from asgiref.sync import sync_to_async
+from discord.ext.commands import Context
 
-# from discord.ext.commands import check
-
-from playthrough.models import User
-
-if TYPE_CHECKING:
-    from discord.ext.commands import Context
-
+from rosetta.utils.db import get_user_from_author
 
 logger = logging.getLogger(__name__)
 
 
-async def is_bot_admin(context: "Context") -> bool:
-    user_obj = await sync_to_async(User.objects.filter(id=context.author.id).first)()
+async def is_bot_admin(context: Context) -> bool:
+    """A Pycord predicate to see if a user is a bot admin according to the db.
+
+    :param context: the command invocation context. Mainly need the author.
+    :return: whether or not the user is a bot admin.
+    """
+    user_obj = await get_user_from_author(context.author)
     is_admin = False
     if user_obj is not None:
         is_admin = user_obj.bot_admin

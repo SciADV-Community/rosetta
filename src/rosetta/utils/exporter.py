@@ -1,8 +1,9 @@
 import os
 from pathlib import Path
-import docker
-from rosetta.config import TOKEN, ARCHIVE_ROOT
 
+import docker
+
+from rosetta.config import ARCHIVE_ROOT, TOKEN
 
 client = docker.from_env()
 

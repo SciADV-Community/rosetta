@@ -3,20 +3,28 @@ import logging
 import discord
 from asgiref.sync import sync_to_async
 from discord.ext import tasks
+from discord.ext.commands import Context, Converter
 
-from .utils.channel import archive_channel
-from .utils.db import (
+from rosetta.utils.db import (
     get_all_games_per_guild,
     get_existing_channel,
     get_game_config,
 )
-from .utils.roles import (
-    grant_completion_role,
-    grant_meta_roles,
-    remove_completion_role,
-)
 
-from .ui import GameButton
+from .utils.channel import archive_channel
+from .utils.roles import grant_completion_role, grant_meta_roles, remove_completion_role
+
+
+class GameConfigConverter(Converter):
+    async def convert(self, ctx: Context, argument: str):
+        game_config = await get_game_config(ctx, argument)
+        if not game_config:
+            await ctx.send(
+                ("Game does not exist, or it is not configured for this server."),
+                delete_after=8,
+            )
+            return
+        return game_config
 
 
 class Playthrough(discord.Cog):
@@ -56,38 +64,38 @@ class Playthrough(discord.Cog):
     @discord.slash_command(description="Drop a game. Closes playthrough channel.")
     async def drop(
         self,
-        ctx,
+        ctx: discord.ApplicationContext,
         *,
         game: discord.Option(
-            str, "The game's name.", autocomplete=game_autocomplete_playable
+            GameConfigConverter,
+            "The game's name.",
+            autocomplete=game_autocomplete_playable,
         ),
     ):
         # Get game config
-        game_config = await get_game_config(ctx, game)
-        if not game_config:
+        if not game:
+            return
+        if not game.playable:
             return await ctx.response.send_message(
-                ("Game does not exist, or it is not configured for this server.")
+                f"No channel to drop for `{game.game}`; it's not playable.",
+                ephemeral=True,
             )
-        if not game_config.playable:
-            return await ctx.response.send_message(
-                (f"No channel to drop for `{game_config.game}`; it's not playable.")
-            )
-        existing_channel = await get_existing_channel(ctx, game_config.game)
+        existing_channel = await get_existing_channel(ctx, game.game)
         if existing_channel:
             await ctx.response.defer(ephemeral=True)
             archive = await archive_channel(ctx, existing_channel)
             if not archive:
                 return
-            await ctx.followup.send("Your channel was archived!", delete_after=8)
+            await ctx.followup.send("Your channel was archived!")
 
-            message = f"And that's that. You dropped `{game_config.game}`."
+            message = f"And that's that. You dropped `{game.game}`."
             try:
-                await ctx.followup.send(message, ephemeral=True, delete_after=8)
+                await ctx.followup.send(message, ephemeral=True)
             except Exception:
                 await ctx.user.send(message)
         else:
             await ctx.response.send_message(
-                f"You don't seem to have a channel for `{game_config.game}`."
+                f"You don't seem to have a channel for `{game.game}`."
             )
 
     @discord.slash_command(
@@ -95,34 +103,30 @@ class Playthrough(discord.Cog):
     )
     async def finished(
         self,
-        ctx,
+        ctx: discord.ApplicationContext,
         *,
-        game: discord.Option(str, "The game's name.", autocomplete=game_autocomplete),
+        game: discord.Option(
+            GameConfigConverter, "The game's name.", autocomplete=game_autocomplete
+        ),
     ):
-        # Get game config
-        game_config = await get_game_config(ctx, game)
-        if not game_config:
-            return await ctx.response.send_message(
-                ("Game does not exist, or it is not configured for this server."),
-                ephemeral=True,
-            )
-
-        existing_channel = await get_existing_channel(ctx, game_config.game)
+        if not game:
+            return
+        existing_channel = await get_existing_channel(ctx, game.game)
         if existing_channel:
             await ctx.response.defer(ephemeral=True)
             archive = await archive_channel(ctx, existing_channel)
             if not archive:
                 return
-            await ctx.followup.send("Your channel was archived!", delete_after=8)
+            await ctx.followup.send("Your channel was archived!")
 
             existing_channel.finished = True
             await sync_to_async(existing_channel.save)()
 
-        await grant_completion_role(ctx, game_config)
-        await grant_meta_roles(ctx, game_config)
-        message = f"Hope you enjoyed {game_config.game}! You should now be able to see global spoiler channels!"
+        await grant_completion_role(ctx, game)
+        await grant_meta_roles(ctx, game)
+        message = f"Hope you enjoyed {game.game}! You should now be able to see global spoiler channels!"
         try:
-            await ctx.followup.send(message, ephemeral=True, delete_after=8)
+            await ctx.followup.send(message, ephemeral=True)
         except Exception:
             await ctx.user.send(message)
 
@@ -131,26 +135,21 @@ class Playthrough(discord.Cog):
     )
     async def reset(
         self,
-        ctx,
+        ctx: discord.ApplicationContext,
         *,
-        game: discord.Option(str, "The game's name.", autocomplete=game_autocomplete),
+        game: discord.Option(
+            GameConfigConverter, "The game's name.", autocomplete=game_autocomplete
+        ),
     ):
-        # Get game config
-        game_config = await get_game_config(ctx, game)
-        if not game_config:
-            return await ctx.response.send_message(
-                "Game does not exist, or it is not configured for this server.",
-                ephemeral=True,
-                delete_after=8,
-            )
-        await remove_completion_role(ctx, game_config)
+        if not game:
+            return
+        await remove_completion_role(ctx, game)
         await ctx.response.send_message(
             (
-                f"Your progress on `{game_config.game}` has been reset. "
+                f"Your progress on `{game.game}` has been reset. "
                 "The completion role is removed!"
             ),
             ephemeral=True,
-            delete_after=8,
         )
         pass
 
