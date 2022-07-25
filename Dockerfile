@@ -1,4 +1,4 @@
-FROM python:3.8-alpine
+FROM python:3.9-alpine
 
 ENV PYTHONUNBUFFERED=1\
     PYTHONDONTWRITEBYTECODE=1\
@@ -23,7 +23,7 @@ COPY poetry.lock pyproject.toml ./
 RUN poetry install --no-dev --no-root --extras deployment
 RUN apk del --no-cache .build-deps
 
-# Sometimes the docker GID is in use by the container, if so then just send it to Va11a11a
+# Sometimes the docker GID is in use by the container, if so then just send it to Va11ha11a
 RUN grep -q ":$docker_gid:" /etc/group && sed -i "s/$docker_gid/1111/" /etc/group
 
 RUN adduser -D user
