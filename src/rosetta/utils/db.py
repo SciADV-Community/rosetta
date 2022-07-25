@@ -31,6 +31,27 @@ def get_user_from_author(author: discord.User) -> User:
 
 
 @sync_to_async
+def get_channel_in_db(channel: discord.Channel) -> Channel:
+    """Get a DB Channel object from a Discord Channel object.
+
+    :param channel: the Discord Channel object.
+    :return: a DB Channel object.
+    """
+    return Channel.objects.filter(id=str(channel.id)).first()
+
+
+@sync_to_async
+def set_channel_finished(channel: Channel, finished: bool):
+    """Set the finished status on a DB Channel.
+
+    :param channel: the channel.
+    :param finished: the new finished status.
+    """
+    channel.finished = finished
+    channel.save()
+
+
+@sync_to_async
 def get_game_config(context: discord.Interaction, game: str) -> Union[GameConfig, None]:
     """Utility function to check if the current guild has a certain game configured
 

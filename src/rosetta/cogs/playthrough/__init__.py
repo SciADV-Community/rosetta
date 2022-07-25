@@ -1,7 +1,6 @@
 import logging
 
 import discord
-from asgiref.sync import sync_to_async
 from discord.ext import tasks
 from discord.ext.commands import Context, Converter
 
@@ -9,6 +8,7 @@ from rosetta.utils.db import (
     get_all_games_per_guild,
     get_existing_channel,
     get_game_config,
+    set_channel_finished,
 )
 
 from .utils.channel import archive_channel
@@ -20,7 +20,9 @@ class GameConfigConverter(Converter):
         game_config = await get_game_config(ctx, argument)
         if not game_config:
             await ctx.send(
-                ("Game does not exist, or it is not configured for this server."),
+                (
+                    f"{ctx.author.mention} Game does not exist, or it is not configured for this server."
+                ),
                 delete_after=8,
             )
             return
@@ -119,8 +121,7 @@ class Playthrough(discord.Cog):
                 return
             await ctx.followup.send("Your channel was archived!")
 
-            existing_channel.finished = True
-            await sync_to_async(existing_channel.save)()
+            set_channel_finished(existing_channel, True)
 
         await grant_completion_role(ctx, game)
         await grant_meta_roles(ctx, game)
