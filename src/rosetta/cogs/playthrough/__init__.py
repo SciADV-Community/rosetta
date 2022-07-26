@@ -2,7 +2,7 @@ import logging
 
 import discord
 from discord.ext import tasks
-from discord.ext.commands import Context, Converter
+from discord.ext.commands import Converter
 
 from rosetta.utils.db import (
     get_all_games_per_guild,
@@ -16,14 +16,12 @@ from .utils.roles import grant_completion_role, grant_meta_roles, remove_complet
 
 
 class GameConfigConverter(Converter):
-    async def convert(self, ctx: Context, argument: str):
+    async def convert(self, ctx: discord.ApplicationContext, argument: str):
         game_config = await get_game_config(ctx, argument)
         if not game_config:
-            await ctx.send(
-                (
-                    f"{ctx.author.mention} Game does not exist, or it is not configured for this server."
-                ),
-                delete_after=8,
+            await ctx.interaction.response.send_message(
+                f"{ctx.author.mention} Game does not exist, or it is not configured for this server.",
+                ephemeral=True,
             )
             return
         return game_config
@@ -69,7 +67,7 @@ class Playthrough(discord.Cog):
         ctx: discord.ApplicationContext,
         *,
         game: discord.Option(
-            GameConfigConverter,
+            GameConfigConverter(),
             "The game's name.",
             autocomplete=game_autocomplete_playable,
         ),
@@ -108,7 +106,7 @@ class Playthrough(discord.Cog):
         ctx: discord.ApplicationContext,
         *,
         game: discord.Option(
-            GameConfigConverter, "The game's name.", autocomplete=game_autocomplete
+            GameConfigConverter(), "The game's name.", autocomplete=game_autocomplete
         ),
     ):
         if not game:
@@ -121,7 +119,7 @@ class Playthrough(discord.Cog):
                 return
             await ctx.followup.send("Your channel was archived!")
 
-            set_channel_finished(existing_channel, True)
+            await set_channel_finished(existing_channel, True)
 
         await grant_completion_role(ctx, game)
         await grant_meta_roles(ctx, game)
@@ -139,7 +137,7 @@ class Playthrough(discord.Cog):
         ctx: discord.ApplicationContext,
         *,
         game: discord.Option(
-            GameConfigConverter, "The game's name.", autocomplete=game_autocomplete
+            GameConfigConverter(), "The game's name.", autocomplete=game_autocomplete
         ),
     ):
         if not game:

@@ -1,32 +1,33 @@
 import logging
 
-from discord.ext.commands import Context
+from discord import ApplicationContext
 
 from rosetta.utils.db import get_user_from_author
 
 logger = logging.getLogger(__name__)
 
 
-async def is_bot_admin(context: Context) -> bool:
+async def is_bot_admin(ctx: ApplicationContext) -> bool:
     """A Pycord predicate to see if a user is a bot admin according to the db.
 
     :param context: the command invocation context. Mainly need the author.
     :return: whether or not the user is a bot admin.
     """
-    user_obj = await get_user_from_author(context.author)
+    user_obj = await get_user_from_author(ctx.author)
     is_admin = False
     if user_obj is not None:
         is_admin = user_obj.bot_admin
-    if not is_admin and context.invoked_with != "help":
+    if not is_admin:
         logger.info(
             "Unauthorized user %s attempted to invoke admin command.",
-            context.author.name,
+            ctx.author.name,
         )
-        await context.send(
+        await ctx.interaction.response.send_message(
             (
                 "You need bot-wide admin privileges "
-                f"to use the `{context.command.name}` command."
-            )
+                f"to use the `{ctx.command.name}` command."
+            ),
+            ephemeral=True,
         )
     return is_admin
 

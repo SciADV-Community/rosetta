@@ -31,7 +31,7 @@ def get_user_from_author(author: discord.User) -> User:
 
 
 @sync_to_async
-def get_channel_in_db(channel: discord.Channel) -> Channel:
+def get_channel_in_db(channel: discord.TextChannel) -> Channel:
     """Get a DB Channel object from a Discord Channel object.
 
     :param channel: the Discord Channel object.

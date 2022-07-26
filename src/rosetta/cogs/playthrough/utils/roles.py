@@ -1,6 +1,5 @@
 from asgiref.sync import sync_to_async
 from discord import ApplicationContext, Interaction, PermissionOverwrite
-from discord.ext.commands import Context
 from discord.utils import get
 
 from playthrough.models import GameConfig, MetaRoleConfig
@@ -9,7 +8,7 @@ from rosetta.cogs.playthrough.utils.discord import get_game_completion_role
 from rosetta.utils.role_expr import MetaRoleEvaluator
 
 
-async def grant_completion_role(context: "Context", game_config: "GameConfig"):
+async def grant_completion_role(context: ApplicationContext, game_config: GameConfig):
     """Grant the message author the completion role for a certain game.
 
     :param context: The Discord Context.
@@ -18,7 +17,7 @@ async def grant_completion_role(context: "Context", game_config: "GameConfig"):
     await context.user.add_roles(completion_role)
 
 
-async def remove_completion_role(context: "Context", game_config: "GameConfig"):
+async def remove_completion_role(context: ApplicationContext, game_config: GameConfig):
     """Removes the completion role for a certain game from the message author.
 
     :param context: The Discord Context.

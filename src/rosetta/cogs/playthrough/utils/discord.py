@@ -22,7 +22,7 @@ def get_channel_in_guild(ctx: Interaction, channel_id: str) -> TextChannel:
 
 
 async def get_game_categories(
-    ctx: Interaction, game_config: "GameConfig"
+    ctx: Interaction, game_config: GameConfig
 ) -> Union[List[CategoryChannel], None]:
     """Utility function to get the category configured for a certain game
 

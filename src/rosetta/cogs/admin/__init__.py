@@ -68,7 +68,7 @@ class Admin(Cog):
 
         # Set finished status
         if finished:
-            set_channel_finished(channel, True)
+            await set_channel_finished(channel, True)
 
         await ctx.followup.send("The channel was archived!", delete_after=8)
 
@@ -103,7 +103,7 @@ class Admin(Cog):
                 archive = await archive_channel(ctx, channel_obj)
                 if archive:
                     if finished:
-                        set_channel_finished(channel, True)
+                        await set_channel_finished(channel, True)
                     await interaction.edit_original_message(
                         content=f"Archived {channel.name} ({i+1}/{len(category_channels)})",
                         view=None,
