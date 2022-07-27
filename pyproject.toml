@@ -2,23 +2,23 @@
 name = "rosetta"
 version = "0.1.0"
 description = "Discord bot for managing channels in playthrough servers."
-authors = ["Rain <Rain#8710>"]
+authors = ["Rain <rainmjp@gmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.8"
-click = "^7.0"
-"discord.py" = "^1.4.1"
-docker = "^4.3.1"
-genki = {git = "https://github.com/SciADV-Community/genki.git", rev = "79e6e48597c2155b848c5df35f259d127f32f0da"}
-psycopg2 = {version = "^2.8.6", optional = true}
+python = "^3.9"
+click = "^8.1.3"
+docker = "^5.0.3"
+psycopg2 = {version = "^2.9.3", optional = true}
+py-cord = {version="^2.0.0", extras=["speed"]}
+genki = {git = "https://github.com/SciADV-Community/genki.git", rev = "f62fa54e71e8eca09e6812262bfe1c77920f9f1e"}
 
 [tool.poetry.dev-dependencies]
-pytest = "^5.3.2"
-pytest-cov = "^2.8.1"
-black = "^19.10b0"
-flake8 = "^3.8.1"
-rope = "^0.17.0"
+pytest = "^7.1.2"
+pytest-cov = "^3.0.0"
+black = "^22.6.0"
+flake8 = "^4.0.1"
+rope = "^1.2.0"
 
 [tool.poetry.extras]
 deployment = ["psycopg2"]
