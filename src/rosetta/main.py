@@ -42,8 +42,13 @@ class Rosetta(discord.Bot):
             logger.info(guild.name)
 
             # Persistent UI
-            playthrough_button_view = await GameButton.gen_button_view(self, guild.id)
-            self.add_view(playthrough_button_view)
+            try:
+                playthrough_button_view = await GameButton.gen_button_view(
+                    self, guild.id
+                )
+                self.add_view(playthrough_button_view)
+            except TypeError:
+                logger.warning(f"No emojis for games in {guild.name}, skipping...")
 
     async def on_guild_join(self, guild: discord.Guild):
         """Handle setting up a new guild."""
