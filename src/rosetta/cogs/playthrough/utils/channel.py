@@ -47,6 +47,7 @@ async def archive_channel(ctx: Interaction, channel: Channel):
         exported_channel_file.close()
         exported_channel_file_path.unlink()
     except Exception as e:
+        print(e)
         logger.error(e)
         await ctx.followup.send(
             (
