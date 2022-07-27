@@ -12,10 +12,10 @@ ENV ROSETTA_ROOT=/rosetta
 
 WORKDIR /rosetta
 
-RUN apk add libpq git
+RUN apk add libpq git gcc
 
 RUN apk add --update --no-cache --virtual .build-deps\
-    gcc g++ libc-dev linux-headers\
+    g++ libc-dev linux-headers\
     libffi-dev libressl-dev postgresql-dev\
     python3-dev musl-dev rust cargo
 RUN pip install poetry==${POETRY_VERSION}
