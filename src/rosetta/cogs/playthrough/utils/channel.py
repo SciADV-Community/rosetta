@@ -26,6 +26,7 @@ async def archive_channel(ctx: Interaction, channel: Channel):
         return False
     try:
         exported_channel_file_path = export_channel(channel.id)
+        print(exported_channel_file_path)
         exported_channel_file = File(
             file=open(exported_channel_file_path), name=exported_channel_file_path.name
         )

@@ -144,14 +144,28 @@ class GameButton(discord.ui.Button):
             )
 
     @classmethod
-    async def gen_button_view(cls, client, guild_id) -> discord.ui.View:
+    async def gen_button_view(
+        cls, client: discord.Bot, guild_id: int, order: list[str] = None
+    ) -> discord.ui.View:
         """Class utility to generate a view containing all the GameButtons for a given Guild.
 
         :param client: the Bot client.
         :param guild_id: the Guild ID to generate the button view for.
         :return: a Discord View with all the appropriate buttons.
         """
-        game_configs = await get_playable_games(guild_id)
+        game_configs: list[GameConfig] = await get_playable_games(guild_id)
+
+        # HACK sorting for rigs
+        if order is not None:
+            if set([gc.game.name for gc in game_configs]) != set(order):
+                return None
+            else:
+                new_game_configs = []
+                for name in order:
+                    for gc in game_configs:
+                        if gc.game.name == name:
+                            new_game_configs.append(gc)
+                            break
 
         view = discord.ui.View(timeout=None)
 
@@ -171,8 +185,10 @@ class GameButton(discord.ui.Button):
 
 class MetaRoleSelect(discord.ui.View):
     """A View with a Select populated by Meta Roles to choose from."""
+
     class _Select(discord.ui.Select):
         """The actual Select UI component."""
+
         async def callback(self, ctx: discord.Interaction):
             """The callback that handles the selection.
 
@@ -186,7 +202,7 @@ class MetaRoleSelect(discord.ui.View):
     def __init__(self, *items, meta_roles: list[MetaRoleConfig], timeout=20):
         """A View with a Select populated by Meta Roles to choose from.
         Please attach an `interaction` member upon creation.
-        
+
         :param meta_roles: the MetaRoleConfigs to populate the View from.
         """
         super().__init__(*items, timeout=timeout)
@@ -204,7 +220,7 @@ class MetaRoleSelect(discord.ui.View):
 
     async def picked_option(self, meta_role_id: int):
         """Selection handler. Disables self and sets value.
-        
+
         :param meta_role_id: the selected MetaRoleConfig's `role_id`.
         """
         self.value = meta_role_id
