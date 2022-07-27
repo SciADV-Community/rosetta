@@ -166,6 +166,7 @@ class GameButton(discord.ui.Button):
                         if gc.game.name == name:
                             new_game_configs.append(gc)
                             break
+                game_configs = new_game_configs
 
         view = discord.ui.View(timeout=None)
 
