@@ -44,10 +44,15 @@ class Admin(Cog):
                 game_order = game_order.split(",")
                 assert type(game_order) == list
         except Exception as e:
-            await ctx.response.send_message(
+            return await ctx.response.send_message(
                 "Invalid game order. Check logs.", ephemeral=True
             )
-        view = await GameButton.gen_button_view(self.client, ctx.guild.id)
+        view = await GameButton.gen_button_view(self.client, ctx.guild.id, game_order)
+        if view is None:
+            return await ctx.response.send_message(
+                "Sorry, couldn't create the buttons. Invalid game order most likely.",
+                ephemeral=True,
+            )
 
         # Send it to the designated channel
         await channel.send(
@@ -55,7 +60,7 @@ class Admin(Cog):
             view=view,
         )
 
-        await ctx.response.send_message("Done!", delete_after=3, ephemeral=True)
+        return await ctx.response.send_message("Done!", delete_after=3, ephemeral=True)
 
     @archive.command(description="Archive a channel.")
     async def channel(
