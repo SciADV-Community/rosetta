@@ -2,7 +2,7 @@ FROM python:3.9-alpine
 
 ENV PYTHONUNBUFFERED=1\
     PYTHONDONTWRITEBYTECODE=1\
-    POETRY_VERSION=1.1.2\
+    POETRY_VERSION=1.1.14\
     POETRY_VIRTUALENVS_IN_PROJECT=1\
     POETRY_NO_INTERACTION=1
 
@@ -15,9 +15,9 @@ WORKDIR /rosetta
 RUN apk add libpq git
 
 RUN apk add --update --no-cache --virtual .build-deps\
-    gcc libc-dev linux-headers\
+    gcc g++ libc-dev linux-headers\
     libffi-dev libressl-dev postgresql-dev\
-    python3-dev musl-dev
+    python3-dev musl-dev rust cargo
 RUN pip install poetry==${POETRY_VERSION}
 COPY poetry.lock pyproject.toml ./
 RUN poetry install --no-dev --no-root --extras deployment
