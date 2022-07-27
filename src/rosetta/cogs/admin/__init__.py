@@ -32,8 +32,21 @@ class Admin(Cog):
         channel: discord.Option(
             discord.TextChannel, "What channel should it be posted in?"
         ),
+        game_order: discord.Option(
+            str,
+            "Provide the magic game order (comma separated game names).",
+            default=None,
+        ),
     ):
         # Get the view
+        try:
+            if game_order:
+                game_order = game_order.split(",")
+                assert type(game_order) == list
+        except Exception as e:
+            await ctx.response.send_message(
+                "Invalid game order. Check logs.", ephemeral=True
+            )
         view = await GameButton.gen_button_view(self.client, ctx.guild.id)
 
         # Send it to the designated channel
