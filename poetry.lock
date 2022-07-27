@@ -270,7 +270,7 @@ description = "A Django-based Web Application to serve Discord chat archives and
 category = "main"
 optional = false
 python-versions = "^3.9"
-develop = true
+develop = false
 
 [package.dependencies]
 django = "^4.0.6"
@@ -281,8 +281,10 @@ requests = "^2.28.0"
 deployment = ["psycopg2 (>=2.9.3,<3.0.0)", "uWSGI (>=2.0.20,<3.0.0)"]
 
 [package.source]
-type = "directory"
-url = "../genki"
+type = "git"
+url = "https://github.com/SciADV-Community/genki.git"
+reference = "f62fa54e71e8eca09e6812262bfe1c77920f9f1e"
+resolved_reference = "f62fa54e71e8eca09e6812262bfe1c77920f9f1e"
 
 [[package]]
 name = "idna"
@@ -631,7 +633,7 @@ deployment = ["psycopg2"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "ec63ffb6a7dc978cdda93f70d8000033b26d163dbe568adf2814b9e1513fbb93"
+content-hash = "a4170dbc4e5800f988807b3d4c19df27552b8e123d830998da42bc5b695f33df"
 
 [metadata.files]
 aiodns = []

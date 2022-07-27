@@ -11,7 +11,7 @@ click = "^8.1.3"
 docker = "^5.0.3"
 psycopg2 = {version = "^2.9.3", optional = true}
 py-cord = {version="^2.0.0", extras=["speed"]}
-genki = {path="../genki", develop=true}
+genki = {git = "https://github.com/SciADV-Community/genki.git", rev = "f62fa54e71e8eca09e6812262bfe1c77920f9f1e"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
