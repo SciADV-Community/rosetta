@@ -126,7 +126,9 @@ class Playthrough(discord.Cog):
         message = f"Hope you enjoyed {game.game}! You should now be able to see global spoiler channels!"
         try:
             await ctx.followup.send(message, ephemeral=True)
-        except Exception:
+        except Exception as e:
+            self.logger.error(e)
+            print(e)
             await ctx.user.send(message)
 
     @discord.slash_command(
@@ -150,7 +152,6 @@ class Playthrough(discord.Cog):
             ),
             ephemeral=True,
         )
-        pass
 
 
 def setup(client):
