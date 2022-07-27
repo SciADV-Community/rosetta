@@ -44,7 +44,7 @@ RUN chmod 755 archives
 RUN mkdir -p /genki/media
 RUN chown user:user /genki/media
 RUN chmod 755 /genki/media
-RUN ln -s /genki/media .venv/src/genki/media
+RUN ln -s /genki/media .venv/lib/python3.9/site-packages/media
 
 COPY . .
 RUN poetry build -f wheel
