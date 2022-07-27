@@ -112,8 +112,8 @@ class Playthrough(discord.Cog):
         if not game:
             return
         existing_channel = await get_existing_channel(ctx, game.game)
+        await ctx.response.defer(ephemeral=True)
         if existing_channel:
-            await ctx.response.defer(ephemeral=True)
             archive = await archive_channel(ctx, existing_channel)
             if not archive:
                 return
