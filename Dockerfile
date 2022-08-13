@@ -32,8 +32,7 @@ RUN adduser -D user\
     && touch /var/run/docker.sock\
     && chown root:docker /var/run/docker.sock\
     && mkdir -p logs archives /genki/media\
-    && chown user:user -R /rosetta\
-    && chown user:user /genki/media\
+    && chown user:user -R logs archives /genki/media\
     && chmod 755 logs archives /genki/media\
     && ln -s /genki/media .venv/lib/python3.9/site-packages/media\
     && poetry build -f wheel\
