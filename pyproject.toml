@@ -10,7 +10,7 @@ python = "^3.9"
 click = "^8.1.3"
 docker = "^5.0.3"
 psycopg2 = {version = "^2.9.3", optional = true}
-py-cord = {version="^2.0.0", extras=["speed"]}
+py-cord = {version="^2.0.1", extras=["speed"]}
 genki = {git = "https://github.com/SciADV-Community/genki.git", rev = "92e3a516e49066527710f6ab182b94211afe2213"}
 
 [tool.poetry.dev-dependencies]
