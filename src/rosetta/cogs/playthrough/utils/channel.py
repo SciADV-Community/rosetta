@@ -16,30 +16,34 @@ from rosetta.utils.exporter import export_channel
 logger = logging.getLogger(__name__)
 
 
-async def archive_channel(ctx: Interaction, channel: Channel):
+async def archive_channel(ctx: Interaction, channel: Channel) -> bool:
     """Utility to archive a playthrough channel for a certain game
 
     :param context: The Discord Context
     :param channel: The Channel to archive."""
+
+    async def _send_error_message_to_user():
+        message = (
+            "Error occurred when archiving the channel, "
+            "please check logs for more information. "
+            "\nThe channel has not been deleted."
+        )
+        try:
+            await ctx.followup.send(message, ephemeral=True)
+        except Exception:
+            await ctx.user.send(message)
+
     channel_in_guild = get_channel_in_guild(ctx, channel.id)
     if not channel_in_guild:
         return False
     try:
         exported_channel_file_path = export_channel(channel.id)
-        print(exported_channel_file_path)
         exported_channel_file = File(
             file=open(exported_channel_file_path), name=exported_channel_file_path.name
         )
     except Exception as e:
         logger.error(e)
-        await ctx.followup.send(
-            (
-                "Error occurred when archiving the channel, "
-                "please check logs for more information. "
-                "\nThe channel has not been deleted."
-            ),
-            ephemeral=True,
-        )
+        await _send_error_message_to_user()
         return False
     try:
         await sync_to_async(Archive.objects.create)(
@@ -48,15 +52,8 @@ async def archive_channel(ctx: Interaction, channel: Channel):
         exported_channel_file.close()
         exported_channel_file_path.unlink()
     except Exception as e:
-        print(e)
         logger.error(e)
-        await ctx.followup.send(
-            (
-                "Error occurred when uploading the channel archive, "
-                "please check logs for more information. "
-                "\nThe channel has not been deleted."
-            )
-        )
+        await _send_error_message_to_user()
         return False
 
     await channel_in_guild.delete()

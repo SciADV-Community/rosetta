@@ -80,8 +80,8 @@ class Playthrough(discord.Cog):
                 f"No channel to drop for `{game.game}`; it's not playable.",
                 ephemeral=True,
             )
-        existing_channel = await get_existing_channel(ctx, game.game)
-        if existing_channel:
+        existing_channel, channel_in_guild = await get_existing_channel(ctx, game.game)
+        if existing_channel and channel_in_guild:
             await ctx.response.defer(ephemeral=True)
             archive = await archive_channel(ctx, existing_channel)
             if not archive:
@@ -95,7 +95,7 @@ class Playthrough(discord.Cog):
                 await ctx.user.send(message)
         else:
             await ctx.response.send_message(
-                f"You don't seem to have a channel for `{game.game}`."
+                f"You don't seem to have an active channel for `{game.game}`."
             )
 
     @discord.slash_command(
@@ -109,27 +109,29 @@ class Playthrough(discord.Cog):
             GameConfigConverter(), "The game's name.", autocomplete=game_autocomplete
         ),
     ):
+        async def _respond(message):
+            try:
+                await ctx.followup.send(message, ephemeral=True)
+            except Exception:
+                await ctx.user.send(message)
+
         if not game:
             return
-        existing_channel = await get_existing_channel(ctx, game.game)
+
+        existing_channel, channel_in_guild = await get_existing_channel(ctx, game.game)
         await ctx.response.defer(ephemeral=True)
-        if existing_channel:
+        if existing_channel and channel_in_guild:
             archive = await archive_channel(ctx, existing_channel)
             if not archive:
                 return
-            await ctx.followup.send("Your channel was archived!")
-
             await set_channel_finished(existing_channel, True)
+            await _respond(f"Your channel for {game.game} was archived!")
 
         await grant_completion_role(ctx, game)
         await grant_meta_roles(ctx, game)
-        message = f"Hope you enjoyed {game.game}! You should now be able to see global spoiler channels!"
-        try:
-            await ctx.followup.send(message, ephemeral=True)
-        except Exception as e:
-            self.logger.error(e)
-            print(e)
-            await ctx.user.send(message)
+        await _respond(
+            f"Hope you enjoyed {game.game}! You should now be able to see global spoiler channels!"
+        )
 
     @discord.slash_command(
         description="Reset history on a certain game. Removes completion role."

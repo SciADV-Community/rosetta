@@ -8,22 +8,22 @@ from rosetta.cogs.playthrough.utils.discord import get_game_completion_role
 from rosetta.utils.role_expr import MetaRoleEvaluator
 
 
-async def grant_completion_role(context: ApplicationContext, game_config: GameConfig):
+async def grant_completion_role(ctx: ApplicationContext, game_config: GameConfig):
     """Grant the message author the completion role for a certain game.
 
     :param context: The Discord Context.
     :param game_config: The game to get the completion role for."""
-    completion_role = get_game_completion_role(context, game_config)
-    await context.user.add_roles(completion_role)
+    completion_role = get_game_completion_role(ctx, game_config)
+    await ctx.user.add_roles(completion_role)
 
 
-async def remove_completion_role(context: ApplicationContext, game_config: GameConfig):
+async def remove_completion_role(ctx: ApplicationContext, game_config: GameConfig):
     """Removes the completion role for a certain game from the message author.
 
     :param context: The Discord Context.
     :param game_config: The game to get the completion role for."""
-    completion_role = get_game_completion_role(context, game_config)
-    await context.user.remove_roles(completion_role)
+    completion_role = get_game_completion_role(ctx, game_config)
+    await ctx.user.remove_roles(completion_role)
 
 
 @sync_to_async

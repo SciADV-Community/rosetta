@@ -72,7 +72,7 @@ class Admin(Cog):
         finished: discord.Option(bool, "Is this channel finished?", default=False),
     ):
         # Get the channel in the DB
-        channel_obj = get_channel_in_db(channel)
+        channel_obj = await get_channel_in_db(channel)
         if channel_obj is None:
             return await ctx.response.send_message(
                 f"{channel.mention} is seemingly not a playthrough channel."
@@ -86,7 +86,7 @@ class Admin(Cog):
 
         # Set finished status
         if finished:
-            await set_channel_finished(channel, True)
+            await set_channel_finished(channel_obj, True)
 
         await ctx.followup.send("The channel was archived!", delete_after=8)
 

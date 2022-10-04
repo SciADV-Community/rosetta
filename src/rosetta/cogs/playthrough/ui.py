@@ -69,9 +69,8 @@ class GameButton(discord.ui.Button):
         :return: a tuple of whether or not this is a replay, whether or not there is a channel, and the db info
         """
         # Fetch player status
-        existing_channel = await get_existing_channel(ctx, self.game_config.game)
-        channel_in_guild = (
-            get_channel_in_guild(ctx, existing_channel.id) if existing_channel else None
+        existing_channel, channel_in_guild = await get_existing_channel(
+            ctx, self.game_config.game
         )
         completion_role = get_game_completion_role(ctx, self.game_config)
 
@@ -138,7 +137,7 @@ class GameButton(discord.ui.Button):
                 ephemeral=True,
             )
         except discord.errors.InteractionResponded:
-            await ctx.edit_original_message(
+            await ctx.edit_original_response(
                 content=f"Successfully created your channel: {channel.mention}, have fun!",
                 view=None,
             )
@@ -216,7 +215,7 @@ class MetaRoleSelect(discord.ui.View):
     async def on_timeout(self) -> None:
         """Timeout handler. Disables self."""
         self.children[0].disabled = True
-        await self.interaction.edit_original_message(view=self)
+        await self.interaction.edit_original_response(view=self)
         self.value = False
 
     async def picked_option(self, meta_role_id: int):
@@ -226,7 +225,7 @@ class MetaRoleSelect(discord.ui.View):
         """
         self.value = meta_role_id
         self.children[0].disabled = True
-        await self.interaction.edit_original_message(view=self)
+        await self.interaction.edit_original_response(view=self)
         self.stop()
 
     @classmethod

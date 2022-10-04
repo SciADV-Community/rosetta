@@ -1,10 +1,12 @@
-from typing import Union
+from typing import Tuple, Union
 
 import discord
 from asgiref.sync import sync_to_async
-from discord.utils import get
+from discord import TextChannel
 
 from playthrough.models import Channel, Game, GameConfig, Guild, MetaRoleConfig, User
+
+from rosetta.cogs.playthrough.utils.discord import get_channel_in_guild
 
 
 @sync_to_async
@@ -106,7 +108,9 @@ def get_meta_roles(game_config: GameConfig) -> list[MetaRoleConfig]:
 
 
 @sync_to_async
-def get_existing_channel(ctx: discord.Interaction, game: Game) -> Union[Channel, None]:
+def get_existing_channel(
+    ctx: discord.Interaction, game: Game
+) -> Tuple[Channel, TextChannel]:
     """Utility function to get the existing channel for a user for a game.
 
     :param ctx: The Discord Interaction context.
@@ -120,12 +124,12 @@ def get_existing_channel(ctx: discord.Interaction, game: Game) -> Union[Channel,
     if existing_channel is not None:
         # If the user supposedly has an existing channel
         # if it's not in the guild and has no archives, remove from the DB
-        channel_in_guild = get(ctx.guild.channels, id=int(existing_channel.id))
+        channel_in_guild = get_channel_in_guild(ctx, existing_channel.id)
         if channel_in_guild is None and len(existing_channel.archives.all()) == 0:
             existing_channel.delete()
         else:  # Otherwise, user already has a channel!
-            return existing_channel
-    return None
+            return existing_channel, channel_in_guild
+    return None, None
 
 
 @sync_to_async
