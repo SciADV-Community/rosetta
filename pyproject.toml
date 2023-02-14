@@ -11,7 +11,7 @@ click = "^8.1.3"
 docker = "^5.0.3"
 psycopg2 = {version="^2.9.3", optional=true}
 py-cord = {version="^2.0.1", extras=["speed"]}
-genki = {git = "https://github.com/SciADV-Community/genki.git", rev = "92e3a516e49066527710f6ab182b94211afe2213"}
+genki = {git = "https://github.com/SciADV-Community/genki.git", rev = "501b009be4281459b618e2309e2ccf74aa6bb41b"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
@@ -29,5 +29,5 @@ start = "scripts:start"
 test = "scripts:test"
 
 [build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry-core>=1.3.0"]
+build-backend = "poetry.core.masonry.api"
