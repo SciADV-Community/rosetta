@@ -674,14 +674,14 @@ Django = ">=3.2"
 
 [[package]]
 name = "django-tailwind"
-version = "3.4.0"
+version = "3.5.0"
 description = "Tailwind CSS Framework for Django projects"
 category = "main"
 optional = false
-python-versions = ">=3.8,<4.0"
+python-versions = ">=3.8.1,<4.0.0"
 files = [
-    {file = "django-tailwind-3.4.0.tar.gz", hash = "sha256:b0ea5f2e2e45b86f7165673291323e46200a91cfed99b80278272a49f034c7a4"},
-    {file = "django_tailwind-3.4.0-py3-none-any.whl", hash = "sha256:ce47a28b466e2e427534ee5a8c6f2ee7f7ffb6bce83b55b7ec22be994b293b65"},
+    {file = "django_tailwind-3.5.0-py3-none-any.whl", hash = "sha256:dcc3b29463fff48a0e8ccd15c87fd467f0e746a7987bde0fdde6253dbb7861be"},
+    {file = "django_tailwind-3.5.0.tar.gz", hash = "sha256:c089b05b47d0e9d19567a81a74949fde16cbbfd8e4264c1f8eb4216a644065b2"},
 ]
 
 [package.dependencies]
@@ -836,7 +836,7 @@ files = []
 develop = false
 
 [package.dependencies]
-django = "^4.1.6"
+django = "^4.1.7"
 django-tailwind = "^3.3.0"
 requests = "^2.28.0"
 
@@ -846,8 +846,8 @@ deployment = ["psycopg2 (>=2.9.3,<3.0.0)", "uWSGI (>=2.0.20,<3.0.0)"]
 [package.source]
 type = "git"
 url = "https://github.com/SciADV-Community/genki.git"
-reference = "501b009be4281459b618e2309e2ccf74aa6bb41b"
-resolved_reference = "501b009be4281459b618e2309e2ccf74aa6bb41b"
+reference = "262d420af3e88554f1c4f6356149a02a0b44277d"
+resolved_reference = "262d420af3e88554f1c4f6356149a02a0b44277d"
 
 [[package]]
 name = "idna"
@@ -1398,14 +1398,14 @@ files = [
 
 [[package]]
 name = "typing-extensions"
-version = "4.4.0"
+version = "4.5.0"
 description = "Backported and Experimental Type Hints for Python 3.7+"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "typing_extensions-4.4.0-py3-none-any.whl", hash = "sha256:16fa4864408f655d35ec496218b85f79b3437c829e93320c7c9215ccfd92489e"},
-    {file = "typing_extensions-4.4.0.tar.gz", hash = "sha256:1511434bb92bf8dd198c12b1cc812e800d4181cfcb867674e0f8279cc93087aa"},
+    {file = "typing_extensions-4.5.0-py3-none-any.whl", hash = "sha256:fb33085c39dd998ac16d1431ebc293a8b3eedd00fd4a32de0ff79002c19511b4"},
+    {file = "typing_extensions-4.5.0.tar.gz", hash = "sha256:5cb5f4a79139d699607b3ef622a1dedafa84e115ab0024e0d9c044a9479ca7cb"},
 ]
 
 [[package]]
@@ -1548,4 +1548,4 @@ deployment = ["psycopg2"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "49492893177387c544b172299478e845a78a93e73057b229d0fad5cce37ff95b"
+content-hash = "0444b8123c7fec7882413f88b7f35ef9451c0e760f2b9738bd2476e5a3b26b14"
