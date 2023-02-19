@@ -1548,4 +1548,4 @@ deployment = ["psycopg2"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "0444b8123c7fec7882413f88b7f35ef9451c0e760f2b9738bd2476e5a3b26b14"
+content-hash = "d2d5978baa477c3e288f63681f3f30a18e5ca4ff3ea0f270ce6f3d4b6dc324fd"
