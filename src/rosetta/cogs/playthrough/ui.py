@@ -211,6 +211,7 @@ class MetaRoleSelect(discord.ui.View):
             for meta_role in meta_roles
         ]
         self.add_item(self._Select(options=options))
+        self.value = False
 
     async def on_timeout(self) -> None:
         """Timeout handler. Disables self."""
