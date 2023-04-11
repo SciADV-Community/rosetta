@@ -30,7 +30,7 @@ class ConfirmView(discord.ui.View):
         """Timeout handler. Disables self."""
         for button in self.children:
             button.disabled = True
-        await self.interaction.edit_original_message(view=self)
+        await self.interaction.edit_original_response(view=self)
         self.value = None
 
     async def picked_option(self, answer: bool):
@@ -41,5 +41,5 @@ class ConfirmView(discord.ui.View):
         self.value = answer
         for button in self.children:
             button.disabled = True
-        await self.interaction.edit_original_message(view=self)
+        await self.interaction.edit_original_response(view=self)
         self.stop()

@@ -1,5 +1,6 @@
 from typing import List
 import logging
+from asgiref.sync import sync_to_async
 
 import discord
 from discord.ext import tasks
@@ -43,6 +44,7 @@ class Admin(Cog):
         self.client = client
         self.logger.info(f"Cog {self.__class__.__name__} loaded successfully.")
         self.guild_meta_roles = {}
+        self.cache.start()
 
     def meta_role_autocomplete(self, ctx: discord.AutocompleteContext) -> list[str]:
         mrs: List[str] = self.guild_meta_roles[ctx.interaction.guild_id]
@@ -179,7 +181,7 @@ class Admin(Cog):
         name: discord.Option(str, "What should the role be called?"),
         logic: discord.Option(
             str,
-            "What criteria should this role be assigned on? Use @Role mentions and && for AND, || for OR, ! for not, and parenthesis to group things together.",
+            "Use @Role mentions and && for AND, || for OR, ! for not. Order with parenthesis.",
         ),
         colour: discord.Option(
             str,
@@ -217,10 +219,10 @@ class Admin(Cog):
         await create_meta_role_config(
             name, colour, logic, ctx.guild_id, game_configs, existing_role_id
         )
-        await ctx.followup.send(f"Added the `{name}` meta role!")
+        await ctx.followup.send(f"Added the `{name}` meta role!", ephemeral=True)
 
     @meta_role.command(
-        description="Re-apply a Meta Role to the server. Useful for when you've just made a new Meta Role and wish to retroactively apply it."
+        description="Re-apply a Meta Role to the server."
     )
     async def reapply(
         self,
@@ -236,7 +238,7 @@ class Admin(Cog):
         members_to_add = []
         for member in members:
             user_role_ids = set([str(role.id) for role in member.roles])
-            related_games: list[GameConfig] = meta_role.games.all()
+            related_games = await sync_to_async(meta_role.games.all)()
             related_roles = [game.completion_role_id for game in related_games]
             evaluator_input = {
                 role_id: role_id in user_role_ids for role_id in related_roles
@@ -258,11 +260,11 @@ class Admin(Cog):
         if not view.value:
             return
 
-        # role_in_discord = get(ctx.guild.roles, id=int(meta_role.role_id))
-        # for member in members_to_add:
-        #     await member.add_roles(role_in_discord)
+        role_in_discord = get(ctx.guild.roles, id=int(meta_role.role_id))
+        for member in members_to_add:
+            await member.add_roles(role_in_discord)
 
-        await ctx.followup.send(f"Re-applied the `{meta_role.name}` meta role!")
+        await ctx.followup.send(f"Re-applied the `{meta_role.name}` meta role!", ephemeral=True)
 
 
 def setup(client):

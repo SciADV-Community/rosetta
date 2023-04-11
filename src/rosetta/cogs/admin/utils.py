@@ -19,7 +19,7 @@ def clean_expr(expr: str) -> str:
 
 @sync_to_async
 def get_meta_role(guild_id: int, name: str) -> Optional[MetaRoleConfig]:
-    return MetaRoleConfig.objects.filter(name=name, guild_id=guild_id).first()
+    return MetaRoleConfig.objects.filter(name=name, guild_id=guild_id).prefetch_related("games").first()
 
 
 @sync_to_async
@@ -28,7 +28,7 @@ def get_all_meta_roles_per_guild() -> dict[str, list[str]]:
     guilds = list(Guild.objects.prefetch_related("meta_roles").all())
 
     for guild in guilds:
-        ret[int(guild.id)] = [meta_role.name for meta_role in guild.meta_roles]
+        ret[int(guild.id)] = [meta_role.name for meta_role in guild.meta_roles.all()]
 
     return ret
 
