@@ -74,4 +74,7 @@ client = Rosetta(
     description=config.DESCRIPTION,
     intents=intents,
 )
+if config.DEBUG:
+    client.debug_guilds = [1000511745548365925]
+
 client.run(config.TOKEN)

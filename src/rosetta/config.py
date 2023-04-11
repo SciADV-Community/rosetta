@@ -2,8 +2,13 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 DESCRIPTION = os.getenv("ROSETTA_DESCRIPTION", "")
 TOKEN = os.getenv("ROSETTA_TOKEN")
+DEBUG = os.getenv("ROSETTA_DEBUG", False)
 
 _ROSETTA_ROOT = os.getenv("ROSETTA_ROOT")
 BASE_DIR = (

@@ -12,6 +12,7 @@ docker = "^5.0.3"
 psycopg2 = {version="^2.9.3", optional=true}
 py-cord = {version="^2.4.0", extras=["speed"]}
 genki = {git = "https://github.com/SciADV-Community/genki.git", rev = "262d420af3e88554f1c4f6356149a02a0b44277d"}
+python-dotenv = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"

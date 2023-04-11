@@ -14,7 +14,7 @@ Discord bot for managing channels in playthrough servers.
 
 ### Manually
 
-Run `export $(cat .env | xargs) && poetry run start`
+Run `poetry run start`
 
 ### Docker
 
@@ -28,7 +28,6 @@ Run `export $(cat .env | xargs) && poetry run start`
 You might need to specify the `docker_gid` arg to the group id of the `docker` group on the **host** environment such that the container can use the passed in `docker.sock` socket to run the chat exporter. You may specify it in the `docker-compose.yml` file like so:
 
 ```yml
-
 ---
 build:
     context: .
