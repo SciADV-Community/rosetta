@@ -15,5 +15,5 @@ def get_instructions(game_config: GameConfig) -> str:
         f" When you're back, you can click the same button you did just now to resume playing!\n"
         "Finally, do note that you have 'Manage Channel' permissions if you wish to change the channel "
         "name or who has permission to access it.\n"
-        "You can find previous archives of your channel here: https://genki.rainm.io/"
+        "You can find previous archives of your channel here: https://genki.iruo.app/"
     )
