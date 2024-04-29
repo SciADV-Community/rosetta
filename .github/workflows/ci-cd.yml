@@ -50,11 +50,11 @@ jobs:
             - name: "Checkout repository"
               uses: actions/checkout@v2
             - name: "Deploy to server"
-              uses: appleboy/ssh-action@v0.1.4
+              uses: appleboy/ssh-action@v1.0.3
               with:
                   host: ${{secrets.RELEASE_SERVER_HOST}}
                   username: ${{secrets.RELEASE_SERVER_USER}}
-                  password: ${{secrets.RELEASE_SERVER_PASSWORD}}
+                  key: ${{secrets.RELEASE_SERVER_KEY}}
                   script: >-
                       export DOCKER_GID=`cut -d: -f3 < <(getent group docker)` &&
                       cd /bot/playthrough-bot/rosetta &&
